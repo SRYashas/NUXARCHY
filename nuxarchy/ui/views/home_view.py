@@ -364,12 +364,16 @@ class HomeView(QWidget):
 
     def update_telemetry(self, snap: SystemSnapshot):
         self.val_home_cpu.setText(f"{snap.cpu.total_utilization:.0f}%")
-        self.val_home_gpu.setText(f"{snap.gpu_nvidia.utilization_gpu_percent:.0f}%")
+        gpu_util = (snap.gpu_nvidia.utilization_gpu_percent if (snap.gpu_nvidia and snap.gpu_nvidia.is_active and snap.gpu_nvidia.utilization_gpu_percent > 0)
+                    else (snap.gpu_amd.utilization_percent if snap.gpu_amd else 0.0))
+        self.val_home_gpu.setText(f"{gpu_util:.0f}%")
         self.val_home_ram.setText(f"{snap.memory.ram_utilization_percent:.0f}%")
         if snap.cpu.temperature_celsius is not None:
             self.lbl_home_cpu_temp.setText(f"{snap.cpu.temperature_celsius:.0f}°C")
-        if snap.gpu_nvidia.temperature_celsius is not None:
-            self.lbl_home_gpu_temp.setText(f"{snap.gpu_nvidia.temperature_celsius:.0f}°C")
+        gpu_temp = (snap.gpu_nvidia.temperature_celsius if (snap.gpu_nvidia and snap.gpu_nvidia.temperature_celsius is not None)
+                    else (snap.gpu_amd.temperature_celsius if snap.gpu_amd else None))
+        if gpu_temp is not None:
+            self.lbl_home_gpu_temp.setText(f"{gpu_temp:.0f}°C")
         used_gb = snap.memory.used_ram_mb / 1024.0
         tot_gb = snap.memory.total_ram_mb / 1024.0
         self.lbl_home_ram_stat.setText(f"{used_gb:.1f}GB / {tot_gb:.0f}GB")

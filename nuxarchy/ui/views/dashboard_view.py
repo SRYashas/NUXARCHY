@@ -340,22 +340,44 @@ class DashboardView(QWidget):
         layout.addWidget(link)
         return card
 
+    def _sample_top_processes(self):
+        try:
+            import psutil
+            procs = []
+            for p in psutil.process_iter(['name', 'cpu_percent', 'memory_info']):
+                try:
+                    cpu = p.info.get('cpu_percent') or 0.0
+                    mem_info = p.info.get('memory_info')
+                    mem_mb = (mem_info.rss / (1024 * 1024)) if mem_info else 0.0
+                    name = p.info.get('name') or "process"
+                    procs.append((name, cpu, mem_mb))
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+            procs.sort(key=lambda x: x[1], reverse=True)
+            return procs[:5]
+        except Exception:
+            return None
+
     def update_telemetry(self, snap: SystemSnapshot):
-        # 1. Update GPU Card (matches Screenshot 2: 0% GPU Utilization, 55°C GPU Temperature)
+        # 1. Update GPU Card (handles both discrete NVIDIA and integrated AMD/Intel)
+        gpu_val = (snap.gpu_nvidia.utilization_gpu_percent if (snap.gpu_nvidia and snap.gpu_nvidia.is_active and snap.gpu_nvidia.utilization_gpu_percent > 0)
+                   else (snap.gpu_amd.utilization_percent if snap.gpu_amd else 0.0))
+        gpu_temp = (snap.gpu_nvidia.temperature_celsius if (snap.gpu_nvidia and snap.gpu_nvidia.temperature_celsius is not None)
+                    else (snap.gpu_amd.temperature_celsius if snap.gpu_amd else None))
         self.card_gpu.set_data(
-            val=snap.gpu_nvidia.utilization_gpu_percent,
-            temp_c=snap.gpu_nvidia.temperature_celsius,
+            val=gpu_val,
+            temp_c=gpu_temp,
             temp_label="GPU Temperature"
         )
 
-        # 2. Update CPU Card (matches Screenshot 2: 18% CPU Utilization, 85°C CPU Temperature)
+        # 2. Update CPU Card
         self.card_cpu.set_data(
             val=snap.cpu.total_utilization,
             temp_c=snap.cpu.temperature_celsius,
             temp_label="CPU Temperature"
         )
 
-        # 3. Update RAM Card (matches Screenshot 2: 61% RAM Utilization, 9.4GB / 15.3GB)
+        # 3. Update RAM Card
         used_gb = snap.memory.used_ram_mb / 1024.0
         tot_gb = snap.memory.total_ram_mb / 1024.0
         self.card_ram.set_data(
@@ -368,3 +390,15 @@ class DashboardView(QWidget):
         down_mbps = (snap.network.download_kbps * 8) / 1024.0
         self.val_up.setText(f"{up_mbps:.1f}")
         self.val_down.setText(f"{down_mbps:.1f}")
+
+        # 5. Dynamic Top Processes
+        live_procs = self._sample_top_processes()
+        if live_procs and len(live_procs) >= 3:
+            for row, (p_name, cpu, mem_mb) in enumerate(live_procs):
+                if row < self.table.rowCount():
+                    clean_name = p_name if len(p_name) <= 18 else f"{p_name[:15]}..."
+                    self.table.setItem(row, 0, QTableWidgetItem(f"⚡  {clean_name}"))
+                    self.table.setItem(row, 1, QTableWidgetItem(f"{cpu:.0f}%"))
+                    self.table.setItem(row, 2, QTableWidgetItem("0%"))
+                    self.table.setItem(row, 3, QTableWidgetItem(f"{mem_mb:.0f}MB"))
+                    self.table.setItem(row, 4, QTableWidgetItem("🚫"))

@@ -33,7 +33,10 @@ class ProfileManager:
             try:
                 with open(self.config_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                return AppSettings(**data)
+                if isinstance(data, dict):
+                    valid_keys = {f.name for f in AppSettings.__dataclass_fields__.values()}
+                    filtered = {k: v for k, v in data.items() if k in valid_keys}
+                    return AppSettings(**filtered)
             except Exception:
                 pass
         return AppSettings()

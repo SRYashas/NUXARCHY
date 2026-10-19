@@ -96,7 +96,17 @@ class SystemSampler:
         return "balanced"
 
     def _read_power_supply(self) -> tuple:
-        # Check /sys/class/power_supply/
+        # 1. Try cross-platform psutil
+        try:
+            import psutil
+            if hasattr(psutil, "sensors_battery"):
+                sb = psutil.sensors_battery()
+                if sb is not None:
+                    return int(sb.percent), bool(sb.power_plugged)
+        except Exception:
+            pass
+
+        # 2. Check /sys/class/power_supply/ on Linux
         bat_paths = glob.glob("/sys/class/power_supply/BAT*")
         ac_paths = glob.glob("/sys/class/power_supply/AC*") or glob.glob("/sys/class/power_supply/ADP*")
 
@@ -121,7 +131,14 @@ class SystemSampler:
                 except Exception:
                     pass
 
-        return bat_pct or 88, ac_online
+        if bat_pct is not None:
+            return bat_pct, ac_online
+
+        # If desktop with no battery detected, return None, True
+        if self.caps and not self.caps.is_laptop:
+            return None, True
+
+        return 100, ac_online
 
 
 if PYSIDE6_AVAILABLE:

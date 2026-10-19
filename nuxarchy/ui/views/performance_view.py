@@ -271,8 +271,10 @@ class PerformanceView(QWidget):
     def update_telemetry(self, snap: SystemSnapshot):
         if snap.cpu.temperature_celsius is not None:
             self.val_cpu_temp.setText(f"{snap.cpu.temperature_celsius:.0f}°C")
-        if snap.gpu_nvidia.temperature_celsius is not None:
-            self.val_gpu_temp.setText(f"{snap.gpu_nvidia.temperature_celsius:.0f}°C")
+        gpu_temp = (snap.gpu_nvidia.temperature_celsius if (snap.gpu_nvidia and snap.gpu_nvidia.temperature_celsius is not None)
+                    else (snap.gpu_amd.temperature_celsius if snap.gpu_amd else None))
+        if gpu_temp is not None:
+            self.val_gpu_temp.setText(f"{gpu_temp:.0f}°C")
         self.val_cpu_util.setText(f"{snap.cpu.total_utilization:.0f}%")
         if snap.fan_rpm:
             self.val_rpm.setText(f"{snap.fan_rpm:,} RPM")

@@ -62,7 +62,8 @@ class ThermalView(QWidget):
         self.card_gpu_temp = QFrame()
         self.card_gpu_temp.setProperty("class", "cardFrame")
         g_layout = QVBoxLayout(self.card_gpu_temp)
-        g_title = QLabel("NVIDIA RTX 4050 TEMPERATURE")
+        gpu_name = self.caps.discrete_gpu_name.upper() if (self.caps and self.caps.has_discrete_gpu and self.caps.discrete_gpu_name != "None") else "GPU"
+        g_title = QLabel(f"{gpu_name} TEMPERATURE")
         g_title.setProperty("class", "cardTitle")
         g_layout.addWidget(g_title)
         self.val_gpu_temp = QLabel("52°C")
@@ -136,7 +137,7 @@ class ThermalView(QWidget):
 
     def update_telemetry(self, snap: SystemSnapshot):
         cpu_t = snap.cpu.temperature_celsius or 0.0
-        gpu_t = snap.gpu_nvidia.temperature_celsius or 0.0
+        gpu_t = snap.gpu_nvidia.temperature_celsius if (snap.gpu_nvidia and snap.gpu_nvidia.temperature_celsius is not None) else (snap.gpu_amd.temperature_celsius if snap.gpu_amd else 0.0) or 0.0
 
         self.val_cpu_temp.setText(f"{cpu_t:.1f}°C")
         self.bar_cpu_temp.setValue(int(cpu_t))

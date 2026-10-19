@@ -40,10 +40,11 @@ class NetworkMonitor:
                     lines = f.readlines()[2:]  # Skip header lines
                 for line in lines:
                     parts = line.strip().split()
-                    iface = parts[0].strip(":")
-                    if iface != "lo":  # Ignore loopback
-                        rx_total += int(parts[1])
-                        tx_total += int(parts[9])
+                    if len(parts) >= 10:
+                        iface = parts[0].strip(":")
+                        if iface != "lo":  # Ignore loopback
+                            rx_total += int(parts[1])
+                            tx_total += int(parts[9])
                 return rx_total, tx_total
             except Exception:
                 pass
@@ -59,15 +60,13 @@ class NetworkMonitor:
     def sample(self) -> NetworkTelemetry:
         t = NetworkTelemetry()
         now = time.time()
-        dt = now - self._prev_time
-        if dt <= 0.0:
-            dt = 1.0
+        dt = max(0.001, now - self._prev_time)
 
         rx_curr, tx_curr = self._read_bytes()
 
-        if self._prev_rx_bytes > 0 and rx_curr >= self._prev_rx_bytes:
-            delta_rx = rx_curr - self._prev_rx_bytes
-            delta_tx = tx_curr - self._prev_tx_bytes
+        if self._prev_rx_bytes > 0:
+            delta_rx = max(0, rx_curr - self._prev_rx_bytes)
+            delta_tx = max(0, tx_curr - self._prev_tx_bytes)
             t.download_kbps = round((delta_rx / 1024.0) / dt, 1)
             t.upload_kbps = round((delta_tx / 1024.0) / dt, 1)
 

@@ -514,7 +514,8 @@ class OptimizerBoosterView(QWidget):
         self.lbl_count.setText(f"{checked_count} out of {total} items selected")
 
     def _on_select_all(self, state):
-        chk = (state == Qt.Checked)
+        val = state.value if hasattr(state, "value") else state
+        chk = bool(val == 2 or state == Qt.CheckState.Checked)
         for c in self.check_boxes:
             c.setChecked(chk)
 

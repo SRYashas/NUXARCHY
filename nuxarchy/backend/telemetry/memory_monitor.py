@@ -30,12 +30,13 @@ class MemoryMonitor:
                     for line in f:
                         parts = line.split(":")
                         if len(parts) == 2:
-                            val = parts[1].strip().split()[0]
-                            mem[parts[0].strip()] = int(val)
+                            val_parts = parts[1].strip().split()
+                            if val_parts:
+                                mem[parts[0].strip()] = int(val_parts[0])
 
                 total_kb = mem.get("MemTotal", 0)
                 avail_kb = mem.get("MemAvailable", mem.get("MemFree", 0))
-                used_kb = total_kb - avail_kb
+                used_kb = max(0, total_kb - avail_kb)
 
                 t.total_ram_mb = round(total_kb / 1024.0, 1)
                 t.available_ram_mb = round(avail_kb / 1024.0, 1)
@@ -44,7 +45,7 @@ class MemoryMonitor:
 
                 swap_total_kb = mem.get("SwapTotal", 0)
                 swap_free_kb = mem.get("SwapFree", 0)
-                swap_used_kb = swap_total_kb - swap_free_kb
+                swap_used_kb = max(0, swap_total_kb - swap_free_kb)
                 t.total_swap_mb = round(swap_total_kb / 1024.0, 1)
                 t.used_swap_mb = round(swap_used_kb / 1024.0, 1)
                 t.swap_utilization_percent = round((swap_used_kb / swap_total_kb) * 100.0, 1) if swap_total_kb > 0 else 0.0
