@@ -1,0 +1,54 @@
+# Maintainer: NUXARCHY Team <support@nuxarchy.org>
+pkgname=nuxarchy
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="NUXARCHY: Native Arch Linux recreation of HP OMEN Gaming Hub and OMEN Light Studio"
+arch=('x86_64')
+url="https://github.com/nuxarchy/nuxarchy"
+license=('GPL3')
+depends=(
+    'python'
+    'python-pyside6'
+    'python-psutil'
+    'polkit'
+    'power-profiles-daemon'
+)
+optdepends=(
+    'nvidia-utils: NVML GPU telemetry for NVIDIA GeForce GPUs'
+    'openrgb: Multi-vendor external peripheral RGB lighting integration'
+    'steam: Steam game library discovery and auto-launcher integration'
+)
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    # 1. Install application source
+    install -d "$pkgdir/usr/share/nuxarchy"
+    cp -r "$srcdir/app" "$pkgdir/usr/share/nuxarchy/"
+    cp -r "$srcdir/backend" "$pkgdir/usr/share/nuxarchy/"
+    cp -r "$srcdir/services" "$pkgdir/usr/share/nuxarchy/"
+
+    # 2. Install executable launcher wrapper
+    install -d "$pkgdir/usr/bin"
+    cat << 'EOF' > "$pkgdir/usr/bin/nuxarchy"
+#!/bin/bash
+exec python /usr/share/nuxarchy/app/main.py "$@"
+EOF
+    chmod 755 "$pkgdir/usr/bin/nuxarchy"
+
+    # 3. Install privileged helper
+    install -d "$pkgdir/usr/lib/nuxarchy"
+    install -m 755 "$srcdir/services/privileged_helper.py" "$pkgdir/usr/lib/nuxarchy/nuxarchy-hardware-helper"
+
+    # 4. Install Polkit policy
+    install -d "$pkgdir/usr/share/polkit-1/actions"
+    install -m 644 "$srcdir/packaging/com.nuxarchy.hub.policy" "$pkgdir/usr/share/polkit-1/actions/"
+
+    # 5. Install Desktop entry
+    install -d "$pkgdir/usr/share/applications"
+    install -m 644 "$srcdir/packaging/com.nuxarchy.hub.desktop" "$pkgdir/usr/share/applications/"
+
+    # 6. Install App Icon
+    install -d "$pkgdir/usr/share/icons/hicolor/512x512/apps"
+    install -m 644 "$srcdir/app/resources/nuxarchy_logo.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/nuxarchy.png"
+}

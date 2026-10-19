@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=NUXARCHY
+Comment=NUXARCHY: HP OMEN Gaming Hub & Light Studio for Arch Linux
+Exec=/usr/bin/nuxarchy
+Icon=nuxarchy
+Terminal=false
+Type=Application
+Categories=Settings;HardwareSettings;Game;
+StartupWMClass=NUXARCHY
+Keywords=omen;gaming;rgb;performance;fan;thermal;nuxarchy;
