@@ -5,8 +5,8 @@ Unit Tests: Profile Manager & Privileged Helper Security Validations
 import os
 import tempfile
 import unittest
-from services.profile_manager import ProfileManager, AppSettings
-from services.privileged_helper import set_platform_profile, set_fan_mode, set_keyboard_colors
+from nuxarchy.services.profile_manager import ProfileManager, AppSettings
+from nuxarchy.services.privileged_helper import set_platform_profile, set_fan_mode, set_keyboard_colors
 
 
 class TestServicesAndSecurity(unittest.TestCase):

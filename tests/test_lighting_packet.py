@@ -3,7 +3,7 @@ Unit Tests: OMEN Lighting WMI Packet Structure & Effects
 """
 
 import unittest
-from backend.adapters.lighting_adapter import LightingAdapter, LightingProfile, RgbColor
+from nuxarchy.backend.adapters.lighting_adapter import LightingAdapter, LightingProfile, RgbColor
 
 
 class TestLightingPacket(unittest.TestCase):

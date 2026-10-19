@@ -3,7 +3,7 @@ Unit Tests: Hardware Capability Discovery Engine
 """
 
 import unittest
-from backend.capability import CapabilityDetector, HardwareCapabilities
+from nuxarchy.backend.capability import CapabilityDetector, HardwareCapabilities
 
 
 class TestCapabilityRegistry(unittest.TestCase):

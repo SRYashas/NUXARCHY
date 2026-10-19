@@ -9,7 +9,7 @@ sys.path.insert(0, root_dir)
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFont
-from app.ui.splash_screen import SplashScreen
+from nuxarchy.ui.splash_screen import SplashScreen
 
 app = QApplication.instance() or QApplication(sys.argv)
 app.setFont(QFont("Segoe UI", 9))

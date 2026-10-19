@@ -1,7 +1,7 @@
 # NUXARCHY
 
 <div align="center">
-  <img src="app/resources/nuxarchy_logo.png" alt="NUXARCHY Logo" width="220" />
+  <img src="nuxarchy/resources/nuxarchy_logo.png" alt="NUXARCHY Logo" width="220" />
   <h3>Native Arch Linux Gaming Hub & Hardware Control Center</h3>
   <p>A native, high-performance Arch Linux recreation of HP OMEN Gaming Hub & OMEN Light Studio for modern Wayland compositors (Hyprland, Sway, KDE, GNOME).</p>
 </div>
@@ -73,14 +73,16 @@ makepkg -si
 Launch from your desktop application launcher (Rofi, Wofi, Hyprland application menu, KDE, GNOME) or run from terminal:
 ```bash
 nuxarchy
+# or run directly as a Python module:
+python -m nuxarchy
 ```
 
 ### Command-Line Options
 ```bash
-nuxarchy --help
-nuxarchy --simulated   # Run in simulated hardware mode (useful for testing on arbitrary systems)
-nuxarchy --minimized   # Start minimized to system tray
-nuxarchy --no-splash   # Skip cinematic splash screen
+python -m nuxarchy --help
+python -m nuxarchy --simulated   # Run in simulated hardware mode (useful for testing on arbitrary systems)
+python -m nuxarchy --minimized   # Start minimized to system tray
+python -m nuxarchy --no-splash   # Skip cinematic splash screen
 ```
 
 ---

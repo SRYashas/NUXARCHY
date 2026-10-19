@@ -3,13 +3,13 @@ Unit Tests: Telemetry Parsers
 """
 
 import unittest
-from backend.capability import CapabilityDetector
-from backend.telemetry.cpu_monitor import CpuMonitor, CpuTelemetry
-from backend.telemetry.gpu_amd_monitor import AmdGpuMonitor, AmdGpuTelemetry
-from backend.telemetry.gpu_nvidia_monitor import NvidiaGpuMonitor, NvidiaGpuTelemetry
-from backend.telemetry.memory_monitor import MemoryMonitor, MemoryTelemetry
-from backend.telemetry.network_monitor import NetworkMonitor, NetworkTelemetry
-from backend.telemetry.system_monitor import SystemSampler, SystemSnapshot
+from nuxarchy.backend.capability import CapabilityDetector
+from nuxarchy.backend.telemetry.cpu_monitor import CpuMonitor, CpuTelemetry
+from nuxarchy.backend.telemetry.gpu_amd_monitor import AmdGpuMonitor, AmdGpuTelemetry
+from nuxarchy.backend.telemetry.gpu_nvidia_monitor import NvidiaGpuMonitor, NvidiaGpuTelemetry
+from nuxarchy.backend.telemetry.memory_monitor import MemoryMonitor, MemoryTelemetry
+from nuxarchy.backend.telemetry.network_monitor import NetworkMonitor, NetworkTelemetry
+from nuxarchy.backend.telemetry.system_monitor import SystemSampler, SystemSnapshot
 
 
 class TestTelemetryParsers(unittest.TestCase):

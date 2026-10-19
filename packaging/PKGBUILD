@@ -24,21 +24,20 @@ sha256sums=('SKIP')
 package() {
     # 1. Install application source
     install -d "$pkgdir/usr/share/nuxarchy"
-    cp -r "$srcdir/app" "$pkgdir/usr/share/nuxarchy/"
-    cp -r "$srcdir/backend" "$pkgdir/usr/share/nuxarchy/"
-    cp -r "$srcdir/services" "$pkgdir/usr/share/nuxarchy/"
+    cp -r "$srcdir/nuxarchy" "$pkgdir/usr/share/nuxarchy/"
 
     # 2. Install executable launcher wrapper
     install -d "$pkgdir/usr/bin"
     cat << 'EOF' > "$pkgdir/usr/bin/nuxarchy"
 #!/bin/bash
-exec python /usr/share/nuxarchy/app/main.py "$@"
+export PYTHONPATH="/usr/share/nuxarchy:$PYTHONPATH"
+exec python -m nuxarchy "$@"
 EOF
     chmod 755 "$pkgdir/usr/bin/nuxarchy"
 
     # 3. Install privileged helper
     install -d "$pkgdir/usr/lib/nuxarchy"
-    install -m 755 "$srcdir/services/privileged_helper.py" "$pkgdir/usr/lib/nuxarchy/nuxarchy-hardware-helper"
+    install -m 755 "$srcdir/nuxarchy/services/privileged_helper.py" "$pkgdir/usr/lib/nuxarchy/nuxarchy-hardware-helper"
 
     # 4. Install Polkit policy
     install -d "$pkgdir/usr/share/polkit-1/actions"
@@ -50,5 +49,5 @@ EOF
 
     # 6. Install App Icon
     install -d "$pkgdir/usr/share/icons/hicolor/512x512/apps"
-    install -m 644 "$srcdir/app/resources/nuxarchy_logo.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/nuxarchy.png"
+    install -m 644 "$srcdir/nuxarchy/resources/nuxarchy_logo.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/nuxarchy.png"
 }

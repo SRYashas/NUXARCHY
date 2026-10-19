@@ -10,14 +10,14 @@ sys.path.insert(0, root_dir)
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFont
-from backend.capability import CapabilityDetector
-from services.profile_manager import ProfileManager
-from app.ui.main_window import MainWindow
+from nuxarchy.backend.capability import CapabilityDetector
+from nuxarchy.services.profile_manager import ProfileManager
+from nuxarchy.ui.main_window import MainWindow
 
 app = QApplication.instance() or QApplication(sys.argv)
 app.setFont(QFont("Segoe UI", 9))
 
-style_path = os.path.join(root_dir, "app", "style.qss")
+style_path = os.path.join(root_dir, "nuxarchy", "style.qss")
 if os.path.exists(style_path):
     with open(style_path, "r", encoding="utf-8") as f:
         app.setStyleSheet(f.read())

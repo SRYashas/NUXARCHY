@@ -5,9 +5,9 @@ Unit Tests: Hardware Control Adapters (Platform Profile, Fan Controller, Lightin
 import os
 import tempfile
 import unittest
-from backend.adapters.platform_profile import PlatformProfileAdapter
-from backend.adapters.fan_controller import FanController
-from backend.adapters.lighting_adapter import LightingAdapter, LightingProfile, RgbColor
+from nuxarchy.backend.adapters.platform_profile import PlatformProfileAdapter
+from nuxarchy.backend.adapters.fan_controller import FanController
+from nuxarchy.backend.adapters.lighting_adapter import LightingAdapter, LightingProfile, RgbColor
 
 
 class TestHardwareAdapters(unittest.TestCase):

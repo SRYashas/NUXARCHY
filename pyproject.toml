@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nuxarchy"
+version = "1.0.0"
+description = "Native Arch Linux recreation of HP OMEN Gaming Hub & OMEN Light Studio"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "NUXARCHY Team", email = "support@nuxarchy.org" }
+]
+dependencies = [
+    "PySide6",
+    "psutil",
+]
+
+[project.scripts]
+nuxarchy = "nuxarchy.main:main"
+
+[tool.setuptools.packages.find]
+include = ["nuxarchy*"]
+
+[tool.setuptools.package-data]
+nuxarchy = [
+    "style.qss",
+    "resources/*",
+    "resources/icons/*",
+]

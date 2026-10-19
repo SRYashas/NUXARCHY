@@ -5,11 +5,11 @@ import shutil
 
 from PySide6.QtWidgets import QApplication
 
-from backend.capability import CapabilityDetector
-from services.profile_manager import ProfileManager
-from app.ui.main_window import MainWindow
-from app.ui.splash_screen import SplashScreen
-from backend.telemetry.system_monitor import SystemSampler
+from nuxarchy.backend.capability import CapabilityDetector
+from nuxarchy.services.profile_manager import ProfileManager
+from nuxarchy.ui.main_window import MainWindow
+from nuxarchy.ui.splash_screen import SplashScreen
+from nuxarchy.backend.telemetry.system_monitor import SystemSampler
 
 
 class TestUiSmoke(unittest.TestCase):

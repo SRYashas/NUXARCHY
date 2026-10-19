@@ -3,7 +3,7 @@ Unit Tests: Game Library Scanner & Optimizer Logic
 """
 
 import unittest
-from backend.games.library_scanner import GameLibraryScanner, GameEntry
+from nuxarchy.backend.games.library_scanner import GameLibraryScanner, GameEntry
 
 
 class TestGamesAndOptimizer(unittest.TestCase):
