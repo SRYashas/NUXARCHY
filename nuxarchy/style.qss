@@ -1,7 +1,7 @@
 /* ===================================================================
-   HP OMEN GAMING HUB - PIXEL-PERFECT RECREATION STYLESHEET
-   Complete dark theme with OMEN red/pink accents, proper sidebar,
-   top tab bar, cards, tables, controls, and all widget styles.
+   NUXARCHY HARDWARE & PERFORMANCE CONTROL CENTER STYLESHEET
+   Complete dark theme with emerald & crimson accents, sidebar,
+   top tab bar, cards, tables, controls, and telemetry gauges.
    =================================================================== */
 
 /* --- GLOBAL DEFAULTS --- */
@@ -49,7 +49,7 @@ QPushButton.sideNavBtnActive {
     border-left: 3px solid #E51E43;
 }
 
-/* Sub-navigation items (indented under OMEN 16, Optimizer, etc.) */
+/* Sub-navigation items (indented under Device Tree, Optimizer, etc.) */
 QPushButton.subNavItem {
     background-color: transparent;
     color: #9CA3AF;
@@ -116,14 +116,14 @@ QPushButton.topTabBtnActive {
 }
 
 /* --- CARDS & PANELS --- */
-QFrame.omenCard {
+QFrame.nuxarchyCard, QFrame.omenCard {
     background-color: #12141A;
     border: 1px solid #1A1D27;
     border-radius: 8px;
     padding: 14px;
 }
 
-QFrame.omenCard:hover {
+QFrame.nuxarchyCard:hover, QFrame.omenCard:hover {
     border: 1px solid #282D3D;
 }
 

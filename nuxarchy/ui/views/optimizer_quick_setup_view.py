@@ -1,8 +1,8 @@
 """
-OMEN Gaming Hub: Optimizer > Quick Setup View (Pixel-Perfect Recreation)
-Matches the reference screenshot showing two side-by-side cards:
-  - BOOSTER card with rocket outline vector icon, toggle switch, and CONFIGURE button
-  - CLEANER card with vacuum outline vector icon, last cleaned stats, and SCAN NOW / SCHEDULER buttons
+NUXARCHY Hardware Center: Optimizer > Quick Setup View
+Features two side-by-side cards:
+  - BOOSTER card with rocket vector icon, toggle switch, and CONFIGURE button
+  - CLEANER card with vacuum vector icon, last cleaned stats, and SCAN NOW / SCHEDULER buttons
 """
 
 from PySide6.QtWidgets import (
@@ -16,7 +16,7 @@ from nuxarchy.backend.capability import HardwareCapabilities
 
 
 class RocketIconWidget(QWidget):
-    """Vector outline rocket matching HP OMEN Gaming Hub."""
+    """Vector outline rocket icon."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -64,7 +64,7 @@ class RocketIconWidget(QWidget):
 
 
 class VacuumIconWidget(QWidget):
-    """Vector outline canister vacuum cleaner matching HP OMEN Gaming Hub."""
+    """Vector outline canister vacuum cleaner icon."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -136,7 +136,7 @@ class ShieldCheckWidget(QWidget):
 
 
 class ToggleSwitch(QWidget):
-    """Custom iOS-style toggle switch matching OMEN Gaming Hub's blue toggle."""
+    """Custom toggle switch control with smooth indicator animation."""
 
     toggled = Signal(bool)
 

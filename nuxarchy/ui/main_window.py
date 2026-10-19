@@ -1,7 +1,7 @@
 """
-OMEN Gaming Hub: Master Window & Layout Architecture (Pixel-Perfect Recreation)
-Matches the exact sidebar items, badges, OMEN 16 device tree, Optimizer
-expandable sub-items, and top tab bar from the reference screenshots.
+NUXARCHY: Master Window & System Architecture
+Universal hardware management, dynamic device tree, optimizer,
+expandable sub-items, and top tab bar.
 """
 
 from PySide6.QtWidgets import (
@@ -164,7 +164,7 @@ class MainWindow(QMainWindow):
         self.btn_perf_global.clicked.connect(lambda: self._select_device_tab(1))
         layout.addWidget(self.btn_perf_global)
 
-        btn_ai = self._nav_btn("◇   OMEN AI")
+        btn_ai = self._nav_btn("◇   NUX AI")
         layout.addWidget(btn_ai)
 
         btn_overlays = self._nav_btn("◫   OVERLAYS")
@@ -222,10 +222,25 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self._divider())
 
-        # ── Group 3: OMEN 16 Device Tree ──
-        self.btn_omen16 = self._nav_btn("💻  OMEN 16  ▲")
-        self.btn_omen16.clicked.connect(self._toggle_device_tree)
-        layout.addWidget(self.btn_omen16)
+        # ── Group 3: Detected Device Tree ──
+        dev_title = "DEVICE"
+        if self.caps and self.caps.product_name and self.caps.product_name != "Unknown":
+            name = self.caps.product_name
+            for prefix in ["OMEN by HP Gaming Laptop ", "HP Gaming Laptop ", "HP "]:
+                if name.startswith(prefix):
+                    name = name[len(prefix):]
+                    break
+            dev_title = name.strip() or "DEVICE"
+        elif self.caps and self.caps.is_laptop:
+            dev_title = "LAPTOP"
+
+        icon = "💻" if (self.caps and self.caps.is_laptop) else "🖥️"
+        self.device_label_base = f"{icon}  {dev_title.upper()}"
+
+        self.btn_device = self._nav_btn(f"{self.device_label_base}  ▲")
+        self.btn_device.clicked.connect(self._toggle_device_tree)
+        self.btn_omen16 = self.btn_device  # Compatibility alias
+        layout.addWidget(self.btn_device)
 
         self.device_sub_container = QWidget()
         sub_layout = QVBoxLayout(self.device_sub_container)
@@ -399,7 +414,7 @@ class MainWindow(QMainWindow):
     def _toggle_device_tree(self):
         vis = not self.device_sub_container.isVisible()
         self.device_sub_container.setVisible(vis)
-        self.btn_omen16.setText("💻  OMEN 16  ▲" if vis else "💻  OMEN 16  ▼")
+        self.btn_device.setText(f"{self.device_label_base}  ▲" if vis else f"{self.device_label_base}  ▼")
 
     def _toggle_optimizer_tree(self):
         vis = not self.optimizer_sub_container.isVisible()

@@ -1,7 +1,6 @@
 """
-OMEN Gaming Hub: Graphics Switcher View (Pixel-Perfect Recreation)
-Matches Screenshot 4:
-"Select a GPU mode" with large Hybrid (Active glowing border) and Discrete cards,
+NUXARCHY: Graphics Switcher View
+Select a GPU mode with Hybrid and Discrete cards,
 and bottom "RESET TO DEFAULT" button.
 """
 

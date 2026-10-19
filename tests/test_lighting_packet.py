@@ -1,5 +1,5 @@
 """
-Unit Tests: OMEN Lighting WMI Packet Structure & Effects
+Unit Tests: NUXARCHY Lighting WMI Packet Structure & Effects
 """
 
 import unittest

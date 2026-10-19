@@ -2,7 +2,7 @@
 pkgname=nuxarchy
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="NUXARCHY: Native Arch Linux recreation of HP OMEN Gaming Hub and OMEN Light Studio"
+pkgdesc="NUXARCHY: Native Arch Linux Gaming Hub and Hardware Control Center"
 arch=('x86_64')
 url="https://github.com/nuxarchy/nuxarchy"
 license=('GPL3')

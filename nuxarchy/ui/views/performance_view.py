@@ -1,9 +1,9 @@
 """
-OMEN Gaming Hub: Performance Control View (Pixel-Perfect Recreation)
-Matches Screenshot 3:
+NUXARCHY Hardware Center: Performance Control View
+Features:
 Power Mode with ECO, Balanced, Performance tiles,
-Thermal Control with [MAX | AUTO | MANUAL] slider and 6100 RPM readout,
-and bottom System Temperature section (89°C CPU, 55°C GPU, 66% CPU Load).
+Thermal Control with [MAX | AUTO | MANUAL] slider and live RPM readout,
+and bottom System Temperature section (CPU, GPU, CPU Load).
 """
 
 from PySide6.QtWidgets import (
@@ -29,7 +29,7 @@ class PerformanceView(QWidget):
         layout.setContentsMargins(28, 20, 28, 20)
         layout.setSpacing(24)
 
-        # 1. Power Mode Header Row with dropdown & OMEN Dynamic Power badge
+        # 1. Power Mode Header Row with dropdown & NUXARCHY Dynamic Power badge
         top_row = QHBoxLayout()
         lbl_power_mode = QLabel("Power Mode  ⓘ")
         lbl_power_mode.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 0.5px;")
@@ -54,7 +54,7 @@ class PerformanceView(QWidget):
         top_row.addWidget(combo_auto)
 
         # Dynamic Power Diamond Badge
-        badge_box = QLabel("◆  Optimized with\n   OMEN Dynamic Power")
+        badge_box = QLabel("◆  Optimized with\n   NUXARCHY Dynamic Power")
         badge_box.setStyleSheet("color: #9CA3AF; font-size: 10px; font-weight: 700; margin-left: 12px;")
         top_row.addWidget(badge_box)
 

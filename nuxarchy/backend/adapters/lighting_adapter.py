@@ -1,7 +1,7 @@
 """
-OMEN Light Studio Adapter
-Recreates HP OMEN 4-zone RGB keyboard lighting control.
-Constructs exact HP WMI SECU packets (Command 0x20008 / Subcommand 0x03),
+NUXARCHY RGB Lighting Adapter
+Manages 4-zone RGB keyboard lighting control.
+Constructs hardware WMI SECU packets (Command 0x20008 / Subcommand 0x03),
 provides software dynamic effect generators (Static, Breathing, Cycle, Wave),
 and manages persistent lighting profiles.
 """
@@ -63,7 +63,7 @@ class LightingAdapter:
         self._last_applied_packet = None
 
     def build_wmi_packet(self, profile: LightingProfile) -> bytearray:
-        """Constructs the exact 128-byte HP WMI payload reversed from OmenFourZoneLighting.dll."""
+        """Constructs the 128-byte hardware WMI SECU packet."""
         buf = bytearray(128)
         buf[0] = 0x00  # TYPE
         buf[1] = 0x01 if profile.mode != "Off" else 0x02  # MODE

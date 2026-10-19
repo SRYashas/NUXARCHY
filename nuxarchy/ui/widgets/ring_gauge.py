@@ -1,8 +1,7 @@
 """
-OMEN Gaming Hub Circular Ring Gauge Widget
-Matches the exact radial ring gauge styling in HP OMEN Gaming Hub:
-Magenta-purple glowing arc, digital percentage, centered metric title,
-and bottom-left neon-green temperature readout.
+NUXARCHY Radial Ring Gauge Widget
+Features a neon-glowing arc, digital percentage, centered metric title,
+and bottom thermals/memory telemetry readouts.
 """
 
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QWidget
@@ -10,8 +9,8 @@ from PySide6.QtGui import QPainter, QPen, QColor, QBrush, QLinearGradient, QFont
 from PySide6.QtCore import Qt, QRectF
 
 
-class OmenRingGaugeCard(QFrame):
-    """Card containing the iconic OMEN circular ring gauge and thermals."""
+class NuxRingGaugeCard(QFrame):
+    """Card containing the NUXARCHY circular ring gauge and thermals."""
 
     def __init__(
         self,
@@ -20,8 +19,8 @@ class OmenRingGaugeCard(QFrame):
         parent=None
     ):
         super().__init__(parent)
-        self.setObjectName("omenRingCard")
-        self.setProperty("class", "omenCard")
+        self.setObjectName("ringGaugeCard")
+        self.setProperty("class", "nuxarchyCard")
         self.setMinimumSize(210, 240)
 
         self.card_title = card_title
@@ -38,7 +37,7 @@ class OmenRingGaugeCard(QFrame):
         layout.addWidget(self.lbl_card_title)
 
         # 2. Central Ring Arc Canvas
-        self.canvas = _OmenArcCanvas(self)
+        self.canvas = _RingArcCanvas(self)
         layout.addWidget(self.canvas, 1)
 
         # 3. Bottom Thermals / Memory Details
@@ -70,8 +69,8 @@ class OmenRingGaugeCard(QFrame):
         self.canvas.update()
 
 
-class _OmenArcCanvas(QWidget):
-    def __init__(self, parent_card: OmenRingGaugeCard):
+class _RingArcCanvas(QWidget):
+    def __init__(self, parent_card: NuxRingGaugeCard):
         super().__init__(parent_card)
         self.card = parent_card
 
@@ -101,7 +100,7 @@ class _OmenArcCanvas(QWidget):
 
         if abs(active_span) > 0:
             grad = QLinearGradient(rect.topLeft(), rect.bottomRight())
-            # OMEN neon purple-pink gradient
+            # NUXARCHY neon purple-pink gradient
             grad.setColorAt(0.0, QColor("#E024C3"))
             grad.setColorAt(1.0, QColor("#9333EA"))
 
@@ -124,3 +123,7 @@ class _OmenArcCanvas(QWidget):
         font_sub = QFont("Segoe UI", 10, QFont.Bold)
         painter.setFont(font_sub)
         painter.drawText(QRectF(0, center_y + 12, w, 20), Qt.AlignCenter, self.card.metric_label)
+
+
+# Backward compatibility alias
+OmenRingGaugeCard = NuxRingGaugeCard

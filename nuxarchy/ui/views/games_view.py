@@ -1,7 +1,7 @@
 """
-OMEN Gaming Hub: Game Management & Booster View
-Discovers installed Steam and Linux native games, manages per-game performance profiles,
-and provides one-click launching with automatic NVIDIA PRIME offloading.
+NUXARCHY: Game Management & Booster View
+Discovers installed Steam and native games, manages per-game performance profiles,
+and provides one-click launching with automatic discrete GPU offloading.
 """
 
 import subprocess

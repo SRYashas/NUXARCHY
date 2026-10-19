@@ -1,6 +1,6 @@
 """
-OMEN Gaming Hub: Optimizer > Booster View (Pixel-Perfect Recreation)
-Matches the reference screenshot showing:
+NUXARCHY Hardware Center: Optimizer > Booster View
+Features:
   - Top category tabs with active white pill style: [ 🖥 (9/11) ] [ 🔄 (0/24) ] [ 🪟 (0/13) ] [ 🔲 (0/10) ]
   - Left panel: circular needle gauge (0%), "9 items to be optimized", "GO TO MY GAMES",
     "MANUAL BOOST" (white button), Memory Usage gradient bar with GB stats

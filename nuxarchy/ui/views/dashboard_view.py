@@ -1,7 +1,7 @@
 """
-OMEN Gaming Hub: System Vitals View (Pixel-Perfect Recreation)
-Matches the exact 4-card top row (GPU, CPU, RAM, STORAGE) and
-3-card bottom row (YOUR SETTINGS, NETWORK, TOP PROCESSES) from HP OMEN Gaming Hub.
+NUXARCHY: System Vitals View
+Matches the 4-card top row (GPU, CPU, RAM, STORAGE) and
+3-card bottom row (YOUR SETTINGS, NETWORK, TOP PROCESSES).
 """
 
 import os
@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 
-from nuxarchy.ui.widgets.ring_gauge import OmenRingGaugeCard
+from nuxarchy.ui.widgets.ring_gauge import NuxRingGaugeCard
 from nuxarchy.backend.telemetry.system_monitor import SystemSnapshot
 from nuxarchy.backend.capability import HardwareCapabilities
 
@@ -27,7 +27,7 @@ class DashboardView(QWidget):
         main_layout.setContentsMargins(20, 14, 20, 14)
         main_layout.setSpacing(12)
 
-        # 1. Mode Sub-Bar & Temperature Unit Toggle (as seen in screenshot 2)
+        # 1. Mode Sub-Bar & Temperature Unit Toggle
         sub_bar = QHBoxLayout()
         sub_bar.setContentsMargins(0, 0, 0, 0)
 
@@ -69,15 +69,15 @@ class DashboardView(QWidget):
         row1.setSpacing(12)
 
         # Card 1: GPU
-        self.card_gpu = OmenRingGaugeCard("GPU", "GPU Utilization")
+        self.card_gpu = NuxRingGaugeCard("GPU", "GPU Utilization")
         row1.addWidget(self.card_gpu)
 
         # Card 2: CPU
-        self.card_cpu = OmenRingGaugeCard("CPU", "CPU Utilization")
+        self.card_cpu = NuxRingGaugeCard("CPU", "CPU Utilization")
         row1.addWidget(self.card_cpu)
 
         # Card 3: RAM
-        self.card_ram = OmenRingGaugeCard("RAM", "RAM Utilization")
+        self.card_ram = NuxRingGaugeCard("RAM", "RAM Utilization")
         row1.addWidget(self.card_ram)
 
         # Card 4: STORAGE
@@ -110,7 +110,7 @@ class DashboardView(QWidget):
 
     def _build_storage_card(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(16, 14, 16, 14)
         layout.setSpacing(14)
@@ -198,7 +198,7 @@ class DashboardView(QWidget):
 
     def _build_your_settings_card(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(16, 14, 16, 14)
         layout.setSpacing(12)
@@ -231,7 +231,7 @@ class DashboardView(QWidget):
 
     def _build_network_card(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(16, 14, 16, 14)
         layout.setSpacing(8)
@@ -284,7 +284,7 @@ class DashboardView(QWidget):
 
     def _build_processes_card(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(8)

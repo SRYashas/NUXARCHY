@@ -1,7 +1,7 @@
 """
-OMEN Hardware Capability Discovery Engine
-Discovers host hardware, kernel drivers, thermal interfaces, and power profiles.
-Runs in both native Linux (sysfs/procfs/DMI) and cross-platform / simulated test modes.
+NUXARCHY Hardware & System Capability Discovery Engine
+Discovers host hardware, kernel drivers, thermal interfaces, power profiles, and OS details.
+Runs dynamically in native Linux (sysfs/procfs/DMI), Windows (CIM/WMI), and simulation modes.
 """
 
 import os
@@ -14,12 +14,19 @@ from typing import List, Optional, Dict, Any
 
 @dataclass
 class HardwareCapabilities:
+    # Operating System & Environment
+    os_name: str = "Unknown"
+    os_version: str = "Unknown"
+    kernel_version: str = "Unknown"
+    hostname: str = "Unknown"
+
     # System Identification
     system_vendor: str = "Unknown"
     product_name: str = "Unknown"
     board_name: str = "Unknown"
     bios_version: str = "Unknown"
-    is_hp_omen: bool = False
+    is_supported_device: bool = True
+    is_hp_omen: bool = False  # Compatibility flag
     is_laptop: bool = True
 
     # CPU Information
@@ -92,7 +99,38 @@ class CapabilityDetector:
             pass
         return default
 
+    def _detect_os(self, caps: HardwareCapabilities):
+        caps.hostname = platform.node() or "localhost"
+        sys_name = platform.system()
+        if sys_name == "Linux":
+            caps.kernel_version = platform.release()
+            caps.os_name = "Linux"
+            if os.path.exists("/etc/os-release"):
+                try:
+                    with open("/etc/os-release", "r", encoding="utf-8", errors="ignore") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.startswith("PRETTY_NAME="):
+                                caps.os_name = line.split("=", 1)[1].strip('"\'')
+                                break
+                            elif line.startswith("NAME=") and caps.os_name == "Linux":
+                                caps.os_name = line.split("=", 1)[1].strip('"\'')
+                except Exception:
+                    pass
+            caps.os_version = caps.kernel_version
+        elif sys_name == "Windows":
+            caps.kernel_version = platform.version()
+            rel = platform.release()
+            caps.os_name = f"Windows {rel}"
+            caps.os_version = platform.version()
+        else:
+            caps.os_name = f"{sys_name} {platform.release()}"
+            caps.kernel_version = platform.version()
+            caps.os_version = platform.release()
+
     def _detect_linux(self, caps: HardwareCapabilities):
+        self._detect_os(caps)
+
         # 1. DMI & System identification
         caps.system_vendor = self._read_sysfs("/sys/class/dmi/id/sys_vendor", "Generic")
         caps.product_name = self._read_sysfs("/sys/class/dmi/id/product_name", "PC")
@@ -104,19 +142,26 @@ class CapabilityDetector:
         caps.is_laptop = chassis_type in ["8", "9", "10", "11", "14", "30", "31", "32"]
 
         is_hp = "hp" in caps.system_vendor.lower() or "hewlett-packard" in caps.system_vendor.lower()
-        is_omen = "omen" in caps.product_name.lower() or "omen" in caps.board_name.lower() or "8bcd" in caps.board_name.lower()
-        caps.is_hp_omen = is_hp and is_omen
+        caps.is_supported_device = True
+        caps.is_hp_omen = is_hp
 
         # 2. CPU Detection
         caps.cpu_threads = os.cpu_count() or 1
         try:
             with open("/proc/cpuinfo", "r") as f:
+                cores_set = set()
                 for line in f:
-                    if line.startswith("model name"):
+                    if line.startswith("model name") and caps.cpu_model == "Unknown":
                         caps.cpu_model = line.split(":", 1)[1].strip()
-                        break
+                    elif line.startswith("core id"):
+                        cores_set.add(line.split(":", 1)[1].strip())
+                if cores_set:
+                    caps.cpu_cores = len(cores_set)
+                else:
+                    caps.cpu_cores = max(1, caps.cpu_threads // 2)
         except Exception:
             caps.cpu_model = platform.processor() or "x86_64 Processor"
+            caps.cpu_cores = max(1, caps.cpu_threads // 2)
 
         # Check cpufreq driver
         scaling_driver = self._read_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_driver")
@@ -139,23 +184,29 @@ class CapabilityDetector:
         # Check sensors
         hwmon_root = "/sys/class/hwmon"
         if os.path.exists(hwmon_root):
-            hwmons = os.listdir(hwmon_root)
-            caps.can_monitor_temperatures = len(hwmons) > 0
-            for h in hwmons:
-                h_path = os.path.join(hwmon_root, h)
-                for entry in os.listdir(h_path):
-                    if entry.startswith("fan") and entry.endswith("_input"):
-                        caps.can_read_fan_rpm = True
-                        break
+            try:
+                hwmons = os.listdir(hwmon_root)
+                caps.can_monitor_temperatures = len(hwmons) > 0
+                for h in hwmons:
+                    h_path = os.path.join(hwmon_root, h)
+                    for entry in os.listdir(h_path):
+                        if entry.startswith("fan") and entry.endswith("_input"):
+                            caps.can_read_fan_rpm = True
+                            break
+            except Exception:
+                pass
 
-        # HP WMI thermal modes
-        if caps.is_hp_omen:
+        # Platform driver cooling modes
+        hp_wmi_exists = os.path.exists("/sys/devices/platform/hp-wmi")
+        if is_hp or hp_wmi_exists:
             caps.supported_cooling_modes = ["auto", "max"]
             caps.can_control_fans = True
             caps.has_4zone_rgb = True
             caps.lighting_backend = "hp-wmi"
         else:
-            caps.supported_cooling_modes = ["auto"]
+            caps.supported_cooling_modes = ["auto", "performance"]
+            caps.can_control_fans = caps.has_platform_profile
+            caps.lighting_backend = "none"
 
         # Check for OpenRGB
         if os.path.exists("/run/openrgb") or os.path.exists("/tmp/openrgb"):
@@ -190,29 +241,77 @@ class CapabilityDetector:
             caps.can_monitor_gpu = True
 
         if caps.has_integrated_gpu and caps.has_discrete_gpu:
-            caps.has_mux_switch = caps.is_hp_omen
+            caps.has_mux_switch = True
 
     def _detect_windows(self, caps: HardwareCapabilities):
-        """Native Windows detection via PowerShell / CIM for dev environment verification."""
-        caps.system_vendor = "HP"
-        caps.product_name = "OMEN by HP Gaming Laptop 16-xd0xxx"
-        caps.board_name = "8BCD"
-        caps.bios_version = "F.31"
-        caps.is_hp_omen = True
-        caps.is_laptop = True
+        """Native Windows dynamic discovery via PowerShell CIM queries."""
+        self._detect_os(caps)
 
-        caps.cpu_model = "AMD Ryzen 7 7840HS w/ Radeon 780M Graphics"
-        caps.cpu_cores = 8
-        caps.cpu_threads = 16
+        # Dynamic query via PowerShell CIM
+        try:
+            ps_script = (
+                "$cs = Get-CimInstance Win32_ComputerSystem; "
+                "$bb = Get-CimInstance Win32_BaseBoard; "
+                "$bios = Get-CimInstance Win32_BIOS; "
+                "$cpu = Get-CimInstance Win32_Processor | Select-Object -First 1; "
+                "$gpus = Get-CimInstance Win32_VideoController; "
+                "[PSCustomObject]@{"
+                "Manufacturer = $cs.Manufacturer; "
+                "Model = $cs.Model; "
+                "PCSystemType = $cs.PCSystemType; "
+                "Board = $bb.Product; "
+                "Bios = $bios.SMBIOSBIOSVersion; "
+                "Cpu = $cpu.Name; "
+                "Cores = $cpu.NumberOfCores; "
+                "Threads = $cpu.NumberOfLogicalProcessors; "
+                "Gpus = @($gpus | ForEach-Object { $_.Name })"
+                "} | ConvertTo-Json"
+            )
+            proc = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                timeout=4
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                import json
+                data = json.loads(proc.stdout)
+                caps.system_vendor = (data.get("Manufacturer") or "Generic").strip()
+                caps.product_name = (data.get("Model") or "PC").strip()
+                caps.board_name = (data.get("Board") or "").strip()
+                caps.bios_version = (data.get("Bios") or "").strip()
+
+                # PCSystemType 2 is Mobile / Laptop
+                sys_type = data.get("PCSystemType", 2)
+                caps.is_laptop = (sys_type == 2)
+
+                caps.cpu_model = (data.get("Cpu") or platform.processor()).strip()
+                caps.cpu_cores = int(data.get("Cores") or os.cpu_count() or 1)
+                caps.cpu_threads = int(data.get("Threads") or os.cpu_count() or 1)
+
+                gpus = data.get("Gpus") or []
+                if isinstance(gpus, str):
+                    gpus = [gpus]
+                for gpu in gpus:
+                    gpu_lower = gpu.lower()
+                    if "nvidia" in gpu_lower or "geforce" in gpu_lower:
+                        caps.has_discrete_gpu = True
+                        caps.discrete_gpu_name = gpu
+                        caps.can_monitor_gpu = True
+                    elif "radeon" in gpu_lower or "amd" in gpu_lower or "intel" in gpu_lower:
+                        caps.has_integrated_gpu = True
+                        caps.integrated_gpu_name = gpu
+        except Exception:
+            caps.system_vendor = "Generic"
+            caps.product_name = platform.node() or "PC"
+            caps.cpu_model = platform.processor() or "Multi-Core CPU"
+            caps.cpu_threads = os.cpu_count() or 1
+            caps.cpu_cores = max(1, caps.cpu_threads // 2)
+
+        is_hp = "hp" in caps.system_vendor.lower() or "hewlett-packard" in caps.system_vendor.lower()
+        caps.is_supported_device = True
+        caps.is_hp_omen = is_hp
         caps.can_monitor_cpu = True
-
-        caps.has_integrated_gpu = True
-        caps.integrated_gpu_name = "AMD Radeon 780M Graphics"
-        caps.has_discrete_gpu = True
-        caps.discrete_gpu_name = "NVIDIA GeForce RTX 4050 Laptop GPU (6GB)"
-        caps.can_monitor_gpu = True
-        caps.has_mux_switch = True
-
         caps.has_platform_profile = True
         caps.platform_profile_choices = ["low-power", "balanced", "performance"]
         caps.current_platform_profile = "balanced"
@@ -220,20 +319,26 @@ class CapabilityDetector:
         caps.can_read_fan_rpm = True
         caps.can_control_fans = True
         caps.supported_cooling_modes = ["auto", "max"]
-
         caps.has_4zone_rgb = True
-        caps.lighting_backend = "hp-wmi"
+        caps.lighting_backend = "hp-wmi" if is_hp else "generic"
+        caps.has_mux_switch = caps.has_integrated_gpu and caps.has_discrete_gpu
 
     def _apply_simulation(self, caps: HardwareCapabilities):
-        """Simulation profile mimicking the HP OMEN 16-xd0xxx for automated test suites."""
-        caps.system_vendor = "HP (Simulated)"
-        caps.product_name = "OMEN by HP Gaming Laptop 16-xd0xxx"
+        """Simulation profile providing full capability set for automated test suites."""
+        caps.os_name = "Arch Linux (Rolling)"
+        caps.os_version = "6.11.2-arch1-1"
+        caps.kernel_version = "6.11.2-arch1-1"
+        caps.hostname = "nuxarchy-sim"
+
+        caps.system_vendor = "HP"
+        caps.product_name = "Gaming Laptop 16"
         caps.board_name = "8BCD"
         caps.bios_version = "F.31-SIM"
+        caps.is_supported_device = True
         caps.is_hp_omen = True
         caps.is_laptop = True
 
-        caps.cpu_model = "AMD Ryzen 7 7840HS (Simulated Zen 4)"
+        caps.cpu_model = "AMD Ryzen 7 7840HS w/ Radeon 780M Graphics"
         caps.cpu_cores = 8
         caps.cpu_threads = 16
         caps.cpu_scaling_driver = "amd-pstate-epp"
@@ -259,3 +364,4 @@ class CapabilityDetector:
 
         caps.has_4zone_rgb = True
         caps.lighting_backend = "hp-wmi"
+

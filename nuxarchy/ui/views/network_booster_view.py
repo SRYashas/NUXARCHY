@@ -1,8 +1,8 @@
 """
-OMEN Gaming Hub: Network Booster View (Pixel-Perfect Recreation)
-Matches Screenshot 5:
-Mode [OFF | AUTO | CUSTOM], Total Bandwidth Usage circular ring with 0.00 Mbps,
-and application priority/blocking table.
+NUXARCHY Hardware Center: Network Booster View
+Features:
+Mode [OFF | AUTO | CUSTOM], Total Bandwidth Usage circular ring,
+and application network priority/traffic regulation table.
 """
 
 from PySide6.QtWidgets import (
@@ -121,8 +121,8 @@ class NetworkBoosterView(QWidget):
         self.ring = NetworkRingWidget()
         left_col.addWidget(self.ring, alignment=Qt.AlignCenter)
 
-        # Legend: ■ 100% ◆ HP Omen CommandCenter
-        legend = QLabel("<span style='color:#E51E43'>■ 100%</span>   <span style='color:#FF2A54'>◆</span> HP Omen CommandCenter")
+        # Legend: ■ 100% ◆ NUXARCHY Daemon
+        legend = QLabel("<span style='color:#E51E43'>■ 100%</span>   <span style='color:#FF2A54'>◆</span> NUXARCHY Hardware Daemon")
         legend.setAlignment(Qt.AlignCenter)
         legend.setStyleSheet("color: #D1D5DB; font-size: 12px; font-weight: 700;")
         left_col.addWidget(legend)
@@ -131,7 +131,7 @@ class NetworkBoosterView(QWidget):
 
         # Right Column: Apps Process Priority & Blocking Table
         right_card = QFrame()
-        right_card.setProperty("class", "omenCard")
+        right_card.setProperty("class", "nuxarchyCard")
         r_layout = QVBoxLayout(right_card)
         r_layout.setContentsMargins(8, 8, 8, 8)
 
@@ -163,7 +163,7 @@ class NetworkBoosterView(QWidget):
             ("brave", "0 kbps", "0 kbps"),
             ("ChatGPT Classic", "0 kbps", "0 kbps"),
             ("CrossDeviceService", "0 kbps", "0 kbps"),
-            ("HP Omen CommandCenter", "0 kbps", "1 kbps"),
+            ("NUXARCHY Hardware Daemon", "0 kbps", "1 kbps"),
             ("kilo", "0 kbps", "0 kbps"),
             ("language_server_linux_x64", "0 kbps", "0 kbps"),
             ("nvcontainer", "0 kbps", "0 kbps"),

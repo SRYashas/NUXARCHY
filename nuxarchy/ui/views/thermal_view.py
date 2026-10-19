@@ -1,5 +1,5 @@
 """
-OMEN Gaming Hub: Thermal Management & Fan Control View
+NUXARCHY Hardware Center: Thermal Management & Fan Control View
 Monitors hardware temperatures, fan speeds (RPM), thermal limits, and maximum cooling boost.
 """
 
@@ -114,7 +114,7 @@ class ThermalView(QWidget):
 
         # Safety & Hardware Architecture Notice
         notice = QLabel(
-            "SAFETY NOTICE: On HP OMEN laptops, baseline fan curves are governed by the Embedded Controller (EC) "
+            "SAFETY NOTICE: On supported laptops, baseline fan curves are governed by the Embedded Controller (EC) "
             "firmware to protect against hardware thermal runaway. 'Maximum Cooling' commands the firmware to boost fans "
             "to 100% duty cycle. Undocumented manual register tampering is blocked to prevent battery/VRM damage."
         )

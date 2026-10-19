@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OMEN Hardware Helper (Privileged Backend)
+NUXARCHY Hardware Helper (Privileged Backend)
 Executed via Polkit (pkexec) to perform narrowly scoped hardware adjustments:
 1. set-platform-profile <low-power|balanced|performance>
 2. set-fan-mode <auto|max>

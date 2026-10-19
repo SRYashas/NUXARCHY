@@ -1,6 +1,6 @@
 """
-OMEN Gaming Hub: Optimizer > Cleaner View (Pixel-Perfect Recreation)
-Matches the reference screenshot showing:
+NUXARCHY Hardware Center: Optimizer > Cleaner View
+Features:
   - Left panel: CLEANER title, neon glowing SCAN ring, RESULT card,
     SCHEDULER white button, and "Next clean: --"
   - Right panel: Category icons bar with active white tab [ 🧹 ] [ 🎛 ] [ 💽 ],

@@ -1,5 +1,5 @@
 """
-OMEN Light Studio: Authentic 4-Zone RGB Keyboard View
+NUXARCHY Light Studio: 4-Zone RGB Keyboard Control View
 Features realistic keyboard zone layouts, glowing animated keycaps,
 palette swatches, and hardware WMI lighting control.
 """
@@ -31,11 +31,11 @@ class LightingView(QWidget):
         # Header
         header = QHBoxLayout()
         header_text = QVBoxLayout()
-        title = QLabel("OMEN LIGHT STUDIO")
+        title = QLabel("NUXARCHY LIGHT STUDIO")
         title.setStyleSheet("color: #FFFFFF; font-size: 22px; font-weight: 800; letter-spacing: 1px;")
         header_text.addWidget(title)
 
-        sub = QLabel("HP OMEN 16 4-Zone RGB Keyboard Lighting & Dynamic Effect Studio")
+        sub = QLabel("4-Zone RGB Keyboard Lighting & Dynamic Effect Studio")
         sub.setStyleSheet("color: #9CA3AF; font-size: 12px;")
         header_text.addWidget(sub)
         header.addLayout(header_text)
@@ -155,10 +155,10 @@ class LightingView(QWidget):
         btn_apply.clicked.connect(self._apply_lighting)
         row3.addWidget(btn_apply)
 
-        btn_omen = QPushButton("OMEN Red Theme")
-        btn_omen.setProperty("class", "secondaryButton")
-        btn_omen.clicked.connect(lambda: self._set_preset([RgbColor(255, 42, 84)] * 4))
-        row3.addWidget(btn_omen)
+        btn_cyber_red = QPushButton("Cyber Red Theme")
+        btn_cyber_red.setProperty("class", "secondaryButton")
+        btn_cyber_red.clicked.connect(lambda: self._set_preset([RgbColor(255, 42, 84)] * 4))
+        row3.addWidget(btn_cyber_red)
 
         btn_cyber = QPushButton("Cyberpunk Turquoise")
         btn_cyber.setProperty("class", "secondaryButton")
@@ -227,6 +227,6 @@ class LightingView(QWidget):
     def _apply_lighting(self):
         success, msg = self.adapter.apply_profile(self.profile)
         if success:
-            QMessageBox.information(self, "OMEN Light Studio", msg)
+            QMessageBox.information(self, "NUXARCHY Light Studio", msg)
         else:
             QMessageBox.warning(self, "Lighting Warning", msg)

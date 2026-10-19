@@ -1,8 +1,8 @@
 """
-OMEN Gaming Hub: HOME View (Pixel-Perfect Recreation)
-Matches Screenshot 1:
-MY GEAR (1) with OMEN 16 and accessories cards,
-and WIDGETS (7) with MY PC (3 mini rings), OMEN AI, RECENT GAMES, TOP DEALS, BOOSTER, and FAVORITE GAMES.
+NUXARCHY Control Center: HOME View
+Displays:
+MY GEAR with system hardware card,
+and WIDGETS with MY PC (3 telemetry rings), NUXARCHY AI, RECENT GAMES, TOP DEALS, BOOSTER, and FAVORITE GAMES.
 """
 
 from PySide6.QtWidgets import (
@@ -36,37 +36,57 @@ class HomeView(QWidget):
         gear_row = QHBoxLayout()
         gear_row.setSpacing(14)
 
-        # Card 1: OMEN 16
-        self.card_omen = QFrame()
-        self.card_omen.setFixedSize(220, 140)
-        self.card_omen.setProperty("class", "omenCard")
-        self.card_omen.setCursor(Qt.PointingHandCursor)
-        o_layout = QVBoxLayout(self.card_omen)
+        # Card 1: Primary Rig (Dynamically detected host machine)
+        self.card_device = QFrame()
+        self.card_device.setFixedSize(240, 140)
+        self.card_device.setProperty("class", "nuxarchyCard")
+        self.card_device.setCursor(Qt.PointingHandCursor)
+        o_layout = QVBoxLayout(self.card_device)
         o_layout.setContentsMargins(12, 10, 12, 10)
 
         top_dots = QLabel("•••")
         top_dots.setStyleSheet("color: #6B7280; font-size: 11px;")
         o_layout.addWidget(top_dots)
 
-        laptop_img = QLabel("💻")
+        is_laptop = self.caps.is_laptop if self.caps else True
+        device_icon = "💻" if is_laptop else "🖥️"
+        laptop_img = QLabel(device_icon)
         laptop_img.setAlignment(Qt.AlignCenter)
-        laptop_img.setStyleSheet("font-size: 42px;")
+        laptop_img.setStyleSheet("font-size: 38px;")
         o_layout.addWidget(laptop_img)
 
-        lbl_dev_name = QLabel("OMEN 16")
+        # Clean product display name
+        dev_name = "NUXARCHY RIG"
+        if self.caps and self.caps.product_name and self.caps.product_name != "Unknown":
+            dev_name = self.caps.product_name
+            # Shorten if overly long for card
+            if len(dev_name) > 26:
+                for prefix in ["OMEN by HP Gaming Laptop ", "HP Gaming Laptop ", "HP "]:
+                    if dev_name.startswith(prefix):
+                        dev_name = dev_name[len(prefix):]
+                        break
+
+        lbl_dev_name = QLabel(dev_name)
         lbl_dev_name.setAlignment(Qt.AlignCenter)
-        lbl_dev_name.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 800;")
+        lbl_dev_name.setStyleSheet("color: #FFFFFF; font-size: 12px; font-weight: 800;")
         o_layout.addWidget(lbl_dev_name)
 
-        if on_device_click:
-            self.card_omen.mousePressEvent = lambda e: on_device_click()
+        # Subtitle with vendor & OS
+        os_info = f"{self.caps.system_vendor} • {self.caps.os_name}" if self.caps else "Linux"
+        lbl_os_info = QLabel(os_info)
+        lbl_os_info.setAlignment(Qt.AlignCenter)
+        lbl_os_info.setStyleSheet("color: #00FF85; font-size: 10px; font-weight: 700;")
+        o_layout.addWidget(lbl_os_info)
 
-        gear_row.addWidget(self.card_omen)
+        if on_device_click:
+            self.card_device.mousePressEvent = lambda e: on_device_click()
+
+        gear_row.addWidget(self.card_device)
 
         # Card 2: Add Gear
         card_add = QFrame()
         card_add.setFixedSize(220, 140)
-        card_add.setProperty("class", "omenCard")
+        card_add.setProperty("class", "nuxarchyCard")
         a_layout = QVBoxLayout(card_add)
         a_layout.setAlignment(Qt.AlignCenter)
         a_layout.setSpacing(6)
@@ -76,7 +96,7 @@ class HomeView(QWidget):
         plug_icon.setStyleSheet("color: #9CA3AF; font-size: 24px;")
         a_layout.addWidget(plug_icon)
 
-        add_msg = QLabel("Your OMEN 16 is looking a little lonely.\nLet's fix that. Check out OMEN.com")
+        add_msg = QLabel("Connect peripherals and external controllers to expand your setup.")
         add_msg.setAlignment(Qt.AlignCenter)
         add_msg.setWordWrap(True)
         add_msg.setStyleSheet("color: #9CA3AF; font-size: 10px; font-weight: 600; line-height: 1.3;")
@@ -98,8 +118,8 @@ class HomeView(QWidget):
         self.card_my_pc = self._build_my_pc_widget()
         grid.addWidget(self.card_my_pc, 0, 0)
 
-        # Widget 2: OMEN AI BETA
-        card_ai = self._build_omen_ai_widget()
+        # Widget 2: NUXARCHY AI
+        card_ai = self._build_ai_widget()
         grid.addWidget(card_ai, 0, 1)
 
         # Widget 3: RECENT GAMES
@@ -133,7 +153,7 @@ class HomeView(QWidget):
 
     def _build_my_pc_widget(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         card.setMinimumHeight(170)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -185,20 +205,20 @@ class HomeView(QWidget):
         layout.addLayout(rings_row)
         return card
 
-    def _build_omen_ai_widget(self) -> QFrame:
+    def _build_ai_widget(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         card.setMinimumHeight(170)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
 
-        lbl = QLabel("OMEN AI <span style='color:#FF9E00; font-size:10px;'>BETA</span>")
+        lbl = QLabel("NUXARCHY AI <span style='color:#FF9E00; font-size:10px;'>BETA</span>")
         lbl.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 800;")
         layout.addWidget(lbl)
 
         row = QHBoxLayout()
         text_col = QVBoxLayout()
-        t = QLabel("YOU'RE MAXIMIZING\nPERFORMANCE WITH\nOMEN AI")
+        t = QLabel("YOU'RE MAXIMIZING\nPERFORMANCE WITH\nNUXARCHY AI")
         t.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 900; line-height: 1.2;")
         text_col.addWidget(t)
 
@@ -217,7 +237,7 @@ class HomeView(QWidget):
 
     def _build_recent_games_widget(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         card.setMinimumHeight(170)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -246,7 +266,7 @@ class HomeView(QWidget):
 
     def _build_top_deals_widget(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         card.setMinimumHeight(140)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -270,7 +290,7 @@ class HomeView(QWidget):
 
     def _build_gallery_widget(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         card.setMinimumHeight(140)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -299,7 +319,7 @@ class HomeView(QWidget):
 
     def _build_booster_widget(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         card.setMinimumHeight(140)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -323,7 +343,7 @@ class HomeView(QWidget):
 
     def _build_favorite_games_widget(self) -> QFrame:
         card = QFrame()
-        card.setProperty("class", "omenCard")
+        card.setProperty("class", "nuxarchyCard")
         card.setMinimumHeight(110)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)

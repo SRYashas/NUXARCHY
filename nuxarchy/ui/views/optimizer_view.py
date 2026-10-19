@@ -1,7 +1,7 @@
 """
-OMEN Gaming Hub: Optimizer View Container
+NUXARCHY Hardware Center: Optimizer View Container
 Wraps the three Optimizer sub-tabs (Quick Setup, Booster, Cleaner)
-with top tabs matching the OMEN Gaming Hub reference screenshots.
+with top navigation tabs.
 """
 
 from PySide6.QtWidgets import (

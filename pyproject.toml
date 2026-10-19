@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nuxarchy"
 version = "1.0.0"
-description = "Native Arch Linux recreation of HP OMEN Gaming Hub & OMEN Light Studio"
+description = "Native Arch Linux Gaming Hub & Hardware Control Center"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "GPL-3.0-or-later" }

@@ -1,5 +1,5 @@
 """
-NUXARCHY: Native Arch Linux Control Center for OMEN Hardware
+NUXARCHY: Universal Native Linux & Cross-Platform Hardware Control Center
 Main Entry Point with Cyberpunk Loading Splash Screen & Logo Integration
 """
 

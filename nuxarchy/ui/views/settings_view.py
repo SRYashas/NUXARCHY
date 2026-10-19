@@ -1,5 +1,5 @@
 """
-OMEN Gaming Hub: Application Settings View
+NUXARCHY Hardware Center: Application Settings View
 Configures telemetry refresh rates, temperature units, autostart, and profile persistence.
 """
 

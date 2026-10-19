@@ -1,5 +1,5 @@
 """
-OMEN UI Theme Tokens, Color Palettes & Icon Assets
+NUXARCHY UI Theme Tokens, Color Palettes & Icon Assets
 """
 
 class ThemeColors:
@@ -15,9 +15,9 @@ class ThemeColors:
     BORDER_FOCUS = "#00FFD1"
     DIVIDER = "#1C202B"
 
-    # Accent Colors (OMEN Cyber Palette)
+    # Accent Colors (NUXARCHY Cyber Palette)
     ACCENT_CYAN = "#00FFD1"       # Primary Glow / Turquoise
-    ACCENT_RED = "#FF2A54"        # Omen Red / Warning
+    ACCENT_RED = "#FF2A54"        # Cyber Red / Warning
     ACCENT_VIOLET = "#9D4EDD"     # Cyber Purple
     ACCENT_ORANGE = "#FF9E00"     # Warm Warning
     ACCENT_GREEN = "#10B981"      # Success
