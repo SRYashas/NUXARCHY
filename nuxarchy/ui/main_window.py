@@ -78,6 +78,10 @@ class MainWindow(QMainWindow):
         self.top_tabs = self._build_top_tab_bar()
         self.content_layout.addWidget(self.top_tabs)
 
+        # Zero-Prompt Daemon Activation Banner (shown when daemon is disconnected)
+        self.daemon_banner = self._build_daemon_banner()
+        self.content_layout.addWidget(self.daemon_banner)
+
         # Views Stack
         self.stack = QStackedWidget()
         self.home_view = HomeView(caps, on_device_click=lambda: self._select_device_tab(0))
@@ -480,6 +484,67 @@ class MainWindow(QMainWindow):
             self.perf_view.update_telemetry(snap)
         elif curr == _NET_BOOSTER:
             self.net_booster_view.update_telemetry(snap)
+
+    def _build_daemon_banner(self) -> QFrame:
+        banner = QFrame()
+        banner.setObjectName("daemonBanner")
+        banner.setStyleSheet("""
+            QFrame#daemonBanner {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1E293B, stop:1 #0F172A);
+                border-bottom: 1px solid #334155;
+                padding: 4px 16px;
+            }
+        """)
+        b_layout = QHBoxLayout(banner)
+        b_layout.setContentsMargins(16, 6, 16, 6)
+        b_layout.setSpacing(12)
+
+        icon_lbl = QLabel("🛡️")
+        icon_lbl.setStyleSheet("font-size: 14px;")
+        b_layout.addWidget(icon_lbl)
+
+        txt_lbl = QLabel(
+            "<b>Zero-Prompt Root Daemon Inactive</b> — Enable once with administrator password for 24/7 background telemetry & instant cooling control."
+        )
+        txt_lbl.setStyleSheet("color: #E2E8F0; font-size: 12px;")
+        b_layout.addWidget(txt_lbl)
+        b_layout.addStretch()
+
+        enable_btn = QPushButton("⚡ Enable Service")
+        enable_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #00D2FF;
+                color: #0B0E14;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 4px 12px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #38BDF8;
+            }
+        """)
+        enable_btn.clicked.connect(self._prompt_daemon_service)
+        b_layout.addWidget(enable_btn)
+
+        dismiss_btn = QPushButton("✕")
+        dismiss_btn.setStyleSheet("color: #64748B; font-size: 12px; background: transparent; border: none; font-weight: 700;")
+        dismiss_btn.clicked.connect(banner.hide)
+        b_layout.addWidget(dismiss_btn)
+
+        from nuxarchy.services.daemon_client import DaemonClient
+        if DaemonClient.instance().is_connected():
+            banner.hide()
+
+        return banner
+
+    def _prompt_daemon_service(self):
+        from nuxarchy.ui.dialogs.service_dialog import DaemonServiceDialog
+        dlg = DaemonServiceDialog(self)
+        if dlg.exec():
+            from nuxarchy.services.daemon_client import DaemonClient
+            if DaemonClient.instance().is_connected():
+                self.daemon_banner.hide()
 
     def closeEvent(self, event):
         if hasattr(self, "monitor_thread") and self.monitor_thread.isRunning():

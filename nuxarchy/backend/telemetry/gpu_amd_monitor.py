@@ -11,7 +11,7 @@ from typing import Optional
 
 @dataclass
 class AmdGpuTelemetry:
-    name: str = "AMD Radeon 780M Graphics"
+    name: str = "AMD Radeon Graphics"
     utilization_percent: float = 0.0
     vram_used_mb: float = 0.0
     vram_total_mb: float = 0.0
@@ -22,7 +22,7 @@ class AmdGpuTelemetry:
 
 
 class AmdGpuMonitor:
-    def __init__(self, device_name: str = "AMD Radeon 780M Graphics"):
+    def __init__(self, device_name: str = "AMD Radeon Graphics"):
         self.device_name = device_name
         self.drm_device_path = self._locate_amd_drm_device()
 

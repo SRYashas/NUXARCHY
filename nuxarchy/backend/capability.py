@@ -324,31 +324,31 @@ class CapabilityDetector:
         caps.has_mux_switch = caps.has_integrated_gpu and caps.has_discrete_gpu
 
     def _apply_simulation(self, caps: HardwareCapabilities):
-        """Simulation profile providing full capability set for automated test suites."""
-        caps.os_name = "Arch Linux (Rolling)"
-        caps.os_version = "6.11.2-arch1-1"
-        caps.kernel_version = "6.11.2-arch1-1"
-        caps.hostname = "nuxarchy-sim"
+        """Generic simulation profile providing full capability set for automated test suites."""
+        caps.os_name = "Linux (Universal Workstation)"
+        caps.os_version = "6.12.0-generic"
+        caps.kernel_version = "6.12.0-generic"
+        caps.hostname = "nuxarchy-workstation"
 
-        caps.system_vendor = "HP"
-        caps.product_name = "Gaming Laptop 16"
-        caps.board_name = "8BCD"
-        caps.bios_version = "F.31-SIM"
+        caps.system_vendor = "Generic OEM"
+        caps.product_name = "High-Performance Workstation Laptop"
+        caps.board_name = "BaseBoard"
+        caps.bios_version = "1.0.0-PROD"
         caps.is_supported_device = True
-        caps.is_hp_omen = True
+        caps.is_hp_omen = False
         caps.is_laptop = True
 
-        caps.cpu_model = "AMD Ryzen 7 7840HS w/ Radeon 780M Graphics"
+        caps.cpu_model = "Multi-Core x86_64 Processor"
         caps.cpu_cores = 8
         caps.cpu_threads = 16
-        caps.cpu_scaling_driver = "amd-pstate-epp"
+        caps.cpu_scaling_driver = "generic-cpufreq"
         caps.can_monitor_cpu = True
         caps.can_tune_cpu_governor = True
 
         caps.has_integrated_gpu = True
-        caps.integrated_gpu_name = "AMD Radeon 780M Graphics"
+        caps.integrated_gpu_name = "Integrated Display Graphics"
         caps.has_discrete_gpu = True
-        caps.discrete_gpu_name = "NVIDIA GeForce RTX 4050 Laptop GPU"
+        caps.discrete_gpu_name = "Discrete Dedicated Graphics GPU"
         caps.nvidia_driver_version = "560.35.03"
         caps.can_monitor_gpu = True
         caps.has_mux_switch = True
@@ -363,5 +363,5 @@ class CapabilityDetector:
         caps.current_platform_profile = "balanced"
 
         caps.has_4zone_rgb = True
-        caps.lighting_backend = "hp-wmi"
+        caps.lighting_backend = "generic"
 

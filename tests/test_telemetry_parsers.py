@@ -14,7 +14,7 @@ from nuxarchy.backend.telemetry.system_monitor import SystemSampler, SystemSnaps
 
 class TestTelemetryParsers(unittest.TestCase):
     def test_cpu_monitor(self):
-        monitor = CpuMonitor("AMD Ryzen 7 7840HS")
+        monitor = CpuMonitor()
         data = monitor.sample()
         self.assertIsInstance(data, CpuTelemetry)
         self.assertGreaterEqual(data.total_utilization, 0.0)
@@ -22,14 +22,14 @@ class TestTelemetryParsers(unittest.TestCase):
         self.assertGreater(len(data.per_core_utilization), 0)
 
     def test_amd_gpu_monitor(self):
-        monitor = AmdGpuMonitor("AMD Radeon 780M Graphics")
+        monitor = AmdGpuMonitor()
         data = monitor.sample()
         self.assertIsInstance(data, AmdGpuTelemetry)
         self.assertGreaterEqual(data.utilization_percent, 0.0)
         self.assertGreaterEqual(data.vram_total_mb, 0.0)
 
     def test_nvidia_gpu_monitor(self):
-        monitor = NvidiaGpuMonitor("NVIDIA GeForce RTX 4050 Laptop GPU")
+        monitor = NvidiaGpuMonitor()
         data = monitor.sample()
         self.assertIsInstance(data, NvidiaGpuTelemetry)
         self.assertGreaterEqual(data.utilization_gpu_percent, 0.0)

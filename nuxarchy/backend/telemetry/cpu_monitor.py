@@ -7,6 +7,7 @@ Uses Linux procfs/sysfs with psutil and simulated fallbacks.
 import os
 import time
 import glob
+import platform
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -24,11 +25,22 @@ class CpuTelemetry:
 
 
 class CpuMonitor:
-    def __init__(self, model_name: str = "AMD Ryzen 7 7840HS"):
-        self.model_name = model_name
+    def __init__(self, model_name: Optional[str] = None):
+        self.model_name = model_name or self._detect_model_name()
         self._prev_times = {}
         self._hwmon_temp_path = self._find_cpu_temp_path()
         self._hwmon_power_path = self._find_cpu_power_path()
+
+    def _detect_model_name(self) -> str:
+        if os.path.exists("/proc/cpuinfo"):
+            try:
+                with open("/proc/cpuinfo", "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        if line.startswith("model name"):
+                            return line.split(":", 1)[1].strip()
+            except Exception:
+                pass
+        return platform.processor() or "Generic Multi-Core Processor"
 
     def _find_cpu_temp_path(self) -> Optional[str]:
         hwmon_paths = glob.glob("/sys/class/hwmon/hwmon*")

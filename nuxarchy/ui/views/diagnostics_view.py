@@ -4,7 +4,7 @@ Displays detailed DMI strings, motherboard board ID, CPU topology, PCIe buses, a
 """
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QFrame, QLabel, QGridLayout, QScrollArea, QPushButton, QMessageBox
+    QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QGridLayout, QScrollArea, QPushButton, QMessageBox
 )
 from PySide6.QtCore import Qt
 
@@ -91,9 +91,43 @@ class DiagnosticsView(QWidget):
         grid3 = QGridLayout()
         grid3.setSpacing(10)
         from nuxarchy.services.daemon_client import DaemonClient
-        daemon_connected = DaemonClient.instance().is_connected()
-        daemon_desc = "ACTIVE • /run/nuxarchy.sock (Zero-Prompt Live Hardware Access)" if daemon_connected else "STANDALONE • Local User Mode (Systemd daemon optional)"
-        self._add_row(grid3, 0, "NUXARCHY Root Daemon:", daemon_desc)
+        self.daemon_connected = DaemonClient.instance().is_connected()
+        self.daemon_val_label = QLabel(
+            "ACTIVE • /run/nuxarchy.sock (Zero-Prompt Live Hardware Access)"
+            if self.daemon_connected
+            else "STANDALONE • Local User Mode (Systemd daemon inactive)"
+        )
+        self.daemon_val_label.setStyleSheet("color: #FFFFFF; font-size: 12px; font-weight: 700;")
+        d_lbl = QLabel("NUXARCHY Root Daemon:")
+        d_lbl.setStyleSheet("color: #9CA3AF; font-size: 12px; font-weight: 600;")
+        grid3.addWidget(d_lbl, 0, 0)
+
+        daemon_row_box = QHBoxLayout()
+        daemon_row_box.setContentsMargins(0, 0, 0, 0)
+        daemon_row_box.setSpacing(12)
+        daemon_row_box.addWidget(self.daemon_val_label)
+
+        if not self.daemon_connected:
+            self.enable_daemon_btn = QPushButton("⚡ Enable & Start Service")
+            self.enable_daemon_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #00D2FF;
+                    color: #0B0E14;
+                    font-size: 11px;
+                    font-weight: 700;
+                    padding: 4px 12px;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #38BDF8;
+                }
+            """)
+            self.enable_daemon_btn.clicked.connect(self._prompt_daemon_activation)
+            daemon_row_box.addWidget(self.enable_daemon_btn)
+
+        daemon_row_box.addStretch()
+        grid3.addLayout(daemon_row_box, 0, 1)
+
         self._add_row(grid3, 1, "hp-wmi Platform Driver:", "LOADED • Providing ACPI platform_profile & WMI methods")
         self._add_row(grid3, 2, "amdgpu DRM Driver:", "LOADED • RDNA 3 Display Engine & Hardware Acceleration")
         self._add_row(grid3, 3, "nvidia / nvidia_uvm:", "LOADED • NVML 560+ C API Active")
@@ -105,6 +139,16 @@ class DiagnosticsView(QWidget):
         c_layout.addStretch()
         scroll.setWidget(container)
         layout.addWidget(scroll)
+
+    def _prompt_daemon_activation(self):
+        from nuxarchy.ui.dialogs.service_dialog import DaemonServiceDialog
+        dlg = DaemonServiceDialog(self)
+        if dlg.exec():
+            from nuxarchy.services.daemon_client import DaemonClient
+            if DaemonClient.instance().is_connected():
+                self.daemon_val_label.setText("ACTIVE • /run/nuxarchy.sock (Zero-Prompt Live Hardware Access)")
+                if hasattr(self, "enable_daemon_btn"):
+                    self.enable_daemon_btn.hide()
 
     def _add_row(self, grid: QGridLayout, row: int, label: str, value: str):
         lbl = QLabel(label)

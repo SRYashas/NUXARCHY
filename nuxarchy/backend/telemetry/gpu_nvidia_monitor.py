@@ -14,11 +14,11 @@ from typing import Optional
 
 @dataclass
 class NvidiaGpuTelemetry:
-    name: str = "NVIDIA GeForce RTX 4050 Laptop GPU"
+    name: str = "NVIDIA GeForce Dedicated GPU"
     utilization_gpu_percent: float = 0.0
     utilization_memory_percent: float = 0.0
     vram_used_mb: float = 0.0
-    vram_total_mb: float = 6144.0  # 6 GB standard on RTX 4050 mobile
+    vram_total_mb: float = 0.0
     temperature_celsius: Optional[float] = None
     graphics_clock_mhz: Optional[float] = None
     memory_clock_mhz: Optional[float] = None
@@ -31,7 +31,7 @@ class NvidiaGpuTelemetry:
 
 
 class NvidiaGpuMonitor:
-    def __init__(self, device_name: str = "NVIDIA GeForce RTX 4050 Laptop GPU"):
+    def __init__(self, device_name: str = "NVIDIA GeForce GPU"):
         self.device_name = device_name
         self._nvml_initialized = False
         self._nvml_handle = None
@@ -57,6 +57,14 @@ class NvidiaGpuMonitor:
                     if dev_ret == 0:
                         self._nvml_handle = handle
                         self._nvml_initialized = True
+                        try:
+                            name_buf = ctypes.create_string_buffer(96)
+                            if self._nvml.nvmlDeviceGetName(handle, name_buf, 96) == 0:
+                                val = name_buf.value.decode("utf-8", errors="ignore").strip()
+                                if val:
+                                    self.device_name = val
+                        except Exception:
+                            pass
             except Exception:
                 self._nvml_initialized = False
 

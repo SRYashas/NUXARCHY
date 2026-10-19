@@ -138,6 +138,19 @@ class TestUiSmoke(unittest.TestCase):
             window.close()
 
 
+    def test_daemon_service_dialog(self):
+        from nuxarchy.ui.dialogs.service_dialog import DaemonServiceDialog
+        dlg = DaemonServiceDialog()
+        self.assertIsNotNone(dlg)
+        self.assertEqual(dlg.password_edit.echoMode(), dlg.password_edit.EchoMode.Password)
+        dlg.password_edit.setText("test_admin_pass")
+        # Test activation routine
+        success, msg = DaemonServiceDialog.activate_service("test_admin_pass")
+        self.assertIsInstance(success, bool)
+        self.assertIsInstance(msg, str)
+        dlg.close()
+
+
 if __name__ == "__main__":
     unittest.main()
 
