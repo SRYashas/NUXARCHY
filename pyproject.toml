@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 nuxarchy = "nuxarchy.main:main"
+nuxarchy-daemon = "nuxarchy.services.daemon:main"
 
 [tool.setuptools.packages.find]
 include = ["nuxarchy*"]

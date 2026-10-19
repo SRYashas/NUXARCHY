@@ -56,11 +56,12 @@ class LightingAdapter:
     CMD_TYPE_SET_BRIGHTNESS = 0x05
     CMD_SIGNATURE = b"SECU"
 
-    def __init__(self, profiles_dir: Optional[str] = None):
+    def __init__(self, profiles_dir: Optional[str] = None, direct_mode: bool = False):
         self.profiles_dir = profiles_dir or os.path.expanduser("~/.config/nuxarchy/lighting")
         os.makedirs(self.profiles_dir, exist_ok=True)
         self.current_profile = LightingProfile()
         self._last_applied_packet = None
+        self.direct_mode = direct_mode
 
     def build_wmi_packet(self, profile: LightingProfile) -> bytearray:
         """Constructs the 128-byte hardware WMI SECU packet."""
@@ -86,6 +87,19 @@ class LightingAdapter:
         """Dispatches the lighting configuration to hardware."""
         self.current_profile = profile
         packet = self.build_wmi_packet(profile)
+
+        # 0. Check for NUXARCHY systemd root daemon
+        if not self.direct_mode:
+            try:
+                from nuxarchy.services.daemon_client import DaemonClient
+                client = DaemonClient.instance()
+                if client.is_connected():
+                    hex_str = "".join(f"{c.r:02x}{c.g:02x}{c.b:02x}" for c in profile.zone_colors[:4])
+                    success, msg = client.set_rgb_zones(hex_str)
+                    if success:
+                        return True, f"Lighting applied via daemon: {msg}"
+            except Exception:
+                pass
 
         # 1. Check for hp-wmi sysfs LED / WMI nodes on Linux
         hp_wmi_path = "/sys/devices/platform/hp-wmi"

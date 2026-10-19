@@ -15,9 +15,10 @@ class FanController:
 
     COOLING_MODES = ["auto", "max"]
 
-    def __init__(self, helper_path: Optional[str] = None):
+    def __init__(self, helper_path: Optional[str] = None, direct_mode: bool = False):
         self.helper_path = helper_path or "/usr/lib/nuxarchy/nuxarchy-hardware-helper"
         self._current_mode = "auto"
+        self.direct_mode = direct_mode
 
     def get_supported_modes(self) -> List[str]:
         return self.COOLING_MODES
@@ -29,6 +30,19 @@ class FanController:
         mode = mode.lower()
         if mode not in self.COOLING_MODES:
             return False, f"Unsupported cooling mode '{mode}'. Supported: {self.COOLING_MODES}"
+
+        # 0. Check for NUXARCHY systemd root daemon
+        if not self.direct_mode:
+            try:
+                from nuxarchy.services.daemon_client import DaemonClient
+                client = DaemonClient.instance()
+                if client.is_connected():
+                    success, msg = client.set_fan_mode(mode)
+                    if success:
+                        self._current_mode = mode
+                        return True, f"Cooling mode set to '{mode.upper()}' via daemon."
+            except Exception:
+                pass
 
         # 1. Check for hp-wmi max fan toggle node if exposed
         max_fan_path = "/sys/devices/platform/hp-wmi/max_fan"

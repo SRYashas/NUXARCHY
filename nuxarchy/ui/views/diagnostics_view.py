@@ -90,11 +90,15 @@ class DiagnosticsView(QWidget):
 
         grid3 = QGridLayout()
         grid3.setSpacing(10)
-        self._add_row(grid3, 0, "hp-wmi Platform Driver:", "LOADED • Providing ACPI platform_profile & WMI methods")
-        self._add_row(grid3, 1, "amdgpu DRM Driver:", "LOADED • RDNA 3 Display Engine & Hardware Acceleration")
-        self._add_row(grid3, 2, "nvidia / nvidia_uvm:", "LOADED • NVML 560+ C API Active")
-        self._add_row(grid3, 3, "k10temp / zenpower:", "LOADED • Tctl/Tdie Core Thermal Monitoring")
-        self._add_row(grid3, 4, "power-profiles-daemon:", "ACTIVE • org.freedesktop.UPower.PowerProfiles")
+        from nuxarchy.services.daemon_client import DaemonClient
+        daemon_connected = DaemonClient.instance().is_connected()
+        daemon_desc = "ACTIVE • /run/nuxarchy.sock (Zero-Prompt Live Hardware Access)" if daemon_connected else "STANDALONE • Local User Mode (Systemd daemon optional)"
+        self._add_row(grid3, 0, "NUXARCHY Root Daemon:", daemon_desc)
+        self._add_row(grid3, 1, "hp-wmi Platform Driver:", "LOADED • Providing ACPI platform_profile & WMI methods")
+        self._add_row(grid3, 2, "amdgpu DRM Driver:", "LOADED • RDNA 3 Display Engine & Hardware Acceleration")
+        self._add_row(grid3, 3, "nvidia / nvidia_uvm:", "LOADED • NVML 560+ C API Active")
+        self._add_row(grid3, 4, "k10temp / zenpower:", "LOADED • Tctl/Tdie Core Thermal Monitoring")
+        self._add_row(grid3, 5, "power-profiles-daemon:", "ACTIVE • org.freedesktop.UPower.PowerProfiles")
         dr_layout.addLayout(grid3)
         c_layout.addWidget(card_drivers)
 

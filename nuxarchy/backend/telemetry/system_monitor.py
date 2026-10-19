@@ -55,6 +55,17 @@ class SystemSampler:
         self.net_monitor = NetworkMonitor()
 
     def sample(self) -> SystemSnapshot:
+        # Check if root daemon is active for live system data
+        try:
+            from nuxarchy.services.daemon_client import DaemonClient
+            client = DaemonClient.instance()
+            if client.is_connected():
+                snap = client.get_snapshot()
+                if snap:
+                    return snap
+        except Exception:
+            pass
+
         snap = SystemSnapshot(timestamp=time.time())
         snap.cpu = self.cpu_monitor.sample()
 

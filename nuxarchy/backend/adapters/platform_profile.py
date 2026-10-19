@@ -24,9 +24,10 @@ class PlatformProfileAdapter:
     SYSFS_PROFILE_PATH = "/sys/firmware/acpi/platform_profile"
     SYSFS_CHOICES_PATH = "/sys/firmware/acpi/platform_profile_choices"
 
-    def __init__(self, helper_path: Optional[str] = None):
+    def __init__(self, helper_path: Optional[str] = None, direct_mode: bool = False):
         self.helper_path = helper_path or "/usr/lib/nuxarchy/nuxarchy-hardware-helper"
         self._simulated_profile = "balanced"
+        self.direct_mode = direct_mode
 
     def get_supported_profiles(self) -> List[str]:
         if os.path.exists(self.SYSFS_CHOICES_PATH):
@@ -52,6 +53,18 @@ class PlatformProfileAdapter:
 
         if canonical not in supported:
             return False, f"Profile '{canonical}' is not supported by hardware. Available: {supported}"
+
+        # 0. Check for NUXARCHY systemd root daemon
+        if not self.direct_mode:
+            try:
+                from nuxarchy.services.daemon_client import DaemonClient
+                client = DaemonClient.instance()
+                if client.is_connected():
+                    success, msg = client.set_platform_profile(canonical)
+                    if success:
+                        return True, f"Successfully activated '{canonical}' mode via daemon."
+            except Exception:
+                pass
 
         # 1. Direct sysfs write if root / writable
         if os.path.exists(self.SYSFS_PROFILE_PATH) and os.access(self.SYSFS_PROFILE_PATH, os.W_OK):

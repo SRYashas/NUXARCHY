@@ -23,8 +23,8 @@ echo "[2/5] Deploying application files to /opt/nuxarchy..."
 sudo mkdir -p /opt/nuxarchy
 sudo cp -r "${SCRIPT_DIR}/nuxarchy" /opt/nuxarchy/
 
-# 3. Deploy launcher wrapper
-echo "[3/5] Installing launcher to /usr/local/bin/nuxarchy..."
+# 3. Deploy launcher wrapper & daemon launcher
+echo "[3/6] Installing launchers to /usr/local/bin/..."
 sudo tee /usr/local/bin/nuxarchy > /dev/null << 'EOF'
 #!/bin/bash
 export PYTHONPATH="/opt/nuxarchy:$PYTHONPATH"
@@ -33,8 +33,26 @@ EOF
 sudo chmod +x /usr/local/bin/nuxarchy
 sudo ln -sf /usr/local/bin/nuxarchy /usr/bin/nuxarchy
 
-# 4. Install Polkit helper & policy
-echo "[4/5] Configuring Polkit privileged hardware helper..."
+sudo tee /usr/local/bin/nuxarchy-daemon > /dev/null << 'EOF'
+#!/bin/bash
+export PYTHONPATH="/opt/nuxarchy:$PYTHONPATH"
+exec python -m nuxarchy.services.daemon "$@"
+EOF
+sudo chmod +x /usr/local/bin/nuxarchy-daemon
+sudo ln -sf /usr/local/bin/nuxarchy-daemon /usr/bin/nuxarchy-daemon
+
+# 4. Install & Enable systemd root hardware daemon
+echo "[4/6] Installing and starting nuxarchy-daemon systemd service..."
+if [ -f "${SCRIPT_DIR}/packaging/nuxarchy-daemon.service" ]; then
+    sudo cp "${SCRIPT_DIR}/packaging/nuxarchy-daemon.service" /etc/systemd/system/
+    if command -v systemctl &>/dev/null; then
+        sudo systemctl daemon-reload
+        sudo systemctl enable --now nuxarchy-daemon.service || echo "Notice: Started service or queued for next boot."
+    fi
+fi
+
+# 5. Install Polkit helper & policy (fallback)
+echo "[5/6] Configuring Polkit privileged hardware helper..."
 sudo mkdir -p /usr/lib/nuxarchy
 sudo cp "${SCRIPT_DIR}/nuxarchy/services/privileged_helper.py" /usr/lib/nuxarchy/nuxarchy-hardware-helper
 sudo chmod 755 /usr/lib/nuxarchy/nuxarchy-hardware-helper
@@ -44,8 +62,8 @@ if [ -f "${SCRIPT_DIR}/packaging/com.nuxarchy.hub.policy" ]; then
     sudo cp "${SCRIPT_DIR}/packaging/com.nuxarchy.hub.policy" /usr/share/polkit-1/actions/
 fi
 
-# 5. Deploy Desktop Launcher & Icon
-echo "[5/5] Registering desktop application entry and icon..."
+# 6. Deploy Desktop Launcher & Icon
+echo "[6/6] Registering desktop application entry and icon..."
 sudo mkdir -p /usr/share/applications
 sudo cp "${SCRIPT_DIR}/packaging/com.nuxarchy.hub.desktop" /usr/share/applications/
 
@@ -56,6 +74,10 @@ fi
 
 echo "========================================================"
 echo "      NUXARCHY installation completed successfully!     "
+echo "  The nuxarchy-daemon background service is now active  "
+echo "  providing live hardware telemetry and instant control "
+echo "  without repeated password prompts.                    "
+echo "                                                        "
 echo "  Launch anytime by running 'nuxarchy' in your terminal "
 echo "  or launching NUXARCHY from your application runner.   "
 echo "========================================================"

@@ -35,19 +35,30 @@ exec python -m nuxarchy "$@"
 EOF
     chmod 755 "$pkgdir/usr/bin/nuxarchy"
 
+    cat << 'EOF' > "$pkgdir/usr/bin/nuxarchy-daemon"
+#!/bin/bash
+export PYTHONPATH="/usr/share/nuxarchy:$PYTHONPATH"
+exec python -m nuxarchy.services.daemon "$@"
+EOF
+    chmod 755 "$pkgdir/usr/bin/nuxarchy-daemon"
+
     # 3. Install privileged helper
     install -d "$pkgdir/usr/lib/nuxarchy"
     install -m 755 "$srcdir/nuxarchy/services/privileged_helper.py" "$pkgdir/usr/lib/nuxarchy/nuxarchy-hardware-helper"
 
-    # 4. Install Polkit policy
+    # 4. Install systemd service
+    install -d "$pkgdir/usr/lib/systemd/system"
+    install -m 644 "$srcdir/packaging/nuxarchy-daemon.service" "$pkgdir/usr/lib/systemd/system/"
+
+    # 5. Install Polkit policy
     install -d "$pkgdir/usr/share/polkit-1/actions"
     install -m 644 "$srcdir/packaging/com.nuxarchy.hub.policy" "$pkgdir/usr/share/polkit-1/actions/"
 
-    # 5. Install Desktop entry
+    # 6. Install Desktop entry
     install -d "$pkgdir/usr/share/applications"
     install -m 644 "$srcdir/packaging/com.nuxarchy.hub.desktop" "$pkgdir/usr/share/applications/"
 
-    # 6. Install App Icon
+    # 7. Install App Icon
     install -d "$pkgdir/usr/share/icons/hicolor/512x512/apps"
     install -m 644 "$srcdir/nuxarchy/resources/nuxarchy_logo.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/nuxarchy.png"
 }
