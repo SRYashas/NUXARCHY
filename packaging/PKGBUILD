@@ -2,9 +2,9 @@
 pkgname=nuxarchy
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="NUXARCHY: Native Arch Linux Gaming Hub and Hardware Control Center"
+pkgdesc="NUXARCHY: Native Linux Gaming Hub and Hardware Control Center"
 arch=('x86_64')
-url="https://github.com/nuxarchy/nuxarchy"
+url="https://github.com/SRYashas/NUXARCHY"
 license=('GPL3')
 depends=(
     'python'

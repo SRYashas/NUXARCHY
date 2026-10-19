@@ -1,6 +1,6 @@
 [Unit]
 Description=NUXARCHY Hardware & System Control Daemon
-Documentation=https://github.com/nuxarchy/nuxarchy
+Documentation=https://github.com/SRYashas/NUXARCHY
 After=network.target sys-devices-platform-hp\x2dwmi.device
 
 [Service]

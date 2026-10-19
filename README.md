@@ -2,11 +2,11 @@
 
 <div align="center">
   <img src="nuxarchy/resources/nuxarchy_logo.png" alt="NUXARCHY Logo" width="220" />
-  <h3>Native Arch Linux Gaming Hub & Hardware Control Center</h3>
-  <p>A native, high-performance Arch Linux gaming hub, hardware control center, and RGB studio for modern Wayland compositors (Hyprland, Sway, KDE, GNOME).</p>
+  <h3>Universal Native Linux Gaming Hub & Hardware Control Center</h3>
+  <p>A native, high-performance Linux gaming hub, hardware control center, and RGB studio for modern Wayland & X11 compositors (Hyprland, Sway, KDE Plasma, GNOME, XFCE).</p>
 </div>
 
-![Platform](https://img.shields.io/badge/Platform-Arch%20Linux%20%7C%20NUXARCHY-00FF85?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Platform-Universal%20Linux-00FF85?style=for-the-badge)
 ![UI](https://img.shields.io/badge/UI-Qt%206%20%7C%20PySide6-9D4EDD?style=for-the-badge)
 ![Security](https://img.shields.io/badge/Security-Least%20Privilege%20%7C%20Polkit-FF2A54?style=for-the-badge)
 
@@ -34,51 +34,96 @@ Designed with automatic hardware probing for any modern Linux gaming laptop or w
 - **Graphics Architecture**: Dual GPU topology with automatic discovery (AMD Radeon Graphics, Intel Arc/Iris, NVIDIA GeForce RTX/GTX dedicated GPUs).
 - **Cooling & Sensors**: Universal Linux `hwmon` sensor drivers (`k10temp`, `zenpower`, `coretemp`, `amdgpu`, `nvidia`).
 - **Power Delivery**: Linux ACPI platform profiles (`/sys/firmware/acpi/platform_profile`) and `powerprofilesctl`.
-- **Operating System**: Arch Linux, Fedora, Debian/Ubuntu, and all modern Wayland/X11 desktop environments.
+- **Operating System**: Kali Linux, Debian, Ubuntu, Arch Linux, Fedora, openSUSE, and all modern Wayland/X11 desktop environments.
 
 ---
 
-## Installation & Deployment on Arch Linux
+## Installation & Deployment
 
-### Method 1: One-Click Installer
+### Method 1: Universal One-Click Installer (All Linux Distributions)
+Clone the repository and run the automated installer:
 ```bash
-git clone https://github.com/nuxarchy/nuxarchy.git
-cd nuxarchy
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
 chmod +x packaging/install.sh
 ./packaging/install.sh
 ```
 
-### Method 2: Arch Linux PKGBUILD (`makepkg`)
+---
+
+### Method 2: Manual Installation by Distribution
+
+#### Debian / Ubuntu / Kali Linux / Linux Mint / Pop!_OS
 ```bash
-cd packaging
+# 1. Install system prerequisites and Python packages
+sudo apt update
+sudo apt install -y python3 python3-pip python3-psutil polkitd power-profiles-daemon libxcb-cursor0
+
+# 2. Install PySide6 (Qt 6 bindings)
+sudo apt install -y python3-pyside6.qtcore python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtsvg || pip3 install --break-system-packages pyside6 psutil
+
+# 3. Clone and install
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
+chmod +x packaging/install.sh
+./packaging/install.sh
+```
+
+#### Arch Linux / Manjaro / EndeavourOS
+```bash
+# Via Pacman & Makepkg:
+sudo pacman -S --needed python python-pyside6 python-psutil polkit power-profiles-daemon
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY/packaging
 makepkg -si
 ```
 
-### Dependencies
+#### Fedora / RHEL
+```bash
+sudo dnf install -y python3 python3-pip python3-pyside6 python3-psutil polkit power-profiles-daemon
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
+chmod +x packaging/install.sh
+./packaging/install.sh
+```
+
+#### openSUSE (Tumbleweed / Leap)
+```bash
+sudo zypper install -y python3 python3-pip python3-pyside6 python3-psutil polkit power-profiles-daemon
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
+chmod +x packaging/install.sh
+./packaging/install.sh
+```
+
+---
+
+### Core Dependencies
 - Python 3.9+
-- `python-pyside6` (Qt 6 bindings)
-- `python-psutil`
+- `PySide6` (`QtWidgets`, `QtCore`, `QtGui`, `QtSvg`)
+- `psutil`
 - `power-profiles-daemon`
 - `polkit`
-- Optional: `nvidia-utils` (for NVML RTX GPU telemetry)
+- *Optional*: `nvidia-utils` (for NVML RTX GPU telemetry)
 
 ---
 
 ## Launching
 
-Launch from your desktop application launcher (Rofi, Wofi, Hyprland application menu, KDE, GNOME) or run from terminal:
+Launch from your desktop application launcher (Rofi, Wofi, Hyprland application menu, KDE, GNOME, XFCE) or run from your terminal:
 ```bash
 nuxarchy
-# or run directly as a Python module:
-python -m nuxarchy
+# or via full path / python module:
+/usr/bin/nuxarchy
+python3 -m nuxarchy
 ```
 
 ### Command-Line Options
 ```bash
-python -m nuxarchy --help
-python -m nuxarchy --simulated   # Run in simulated hardware mode (useful for testing on arbitrary systems)
-python -m nuxarchy --minimized   # Start minimized to system tray
-python -m nuxarchy --no-splash   # Skip cinematic splash screen
+python3 -m nuxarchy --help
+python3 -m nuxarchy --simulated   # Run in simulated hardware mode (useful for testing on arbitrary systems)
+python3 -m nuxarchy --minimized   # Start minimized to system tray
+python3 -m nuxarchy --no-splash   # Skip splash screen
 ```
 
 ---
@@ -87,7 +132,7 @@ python -m nuxarchy --no-splash   # Skip cinematic splash screen
 
 Run the full automated test suite:
 ```bash
-python -m pytest
+python3 -m pytest
 ```
 
 ---

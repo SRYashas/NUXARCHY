@@ -5,7 +5,7 @@
 set -euo pipefail
 
 echo "========================================================"
-echo "          Installing NUXARCHY for Linux                 "
+echo "                  Installing NUXARCHY                   "
 echo "========================================================"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,9 +20,9 @@ elif command -v apt-get &>/dev/null; then
     sudo apt-get update -y || true
     sudo apt-get install -y python3 python3-pip python3-psutil polkitd power-profiles-daemon libxcb-cursor0 || true
     # Attempt apt PySide6 installation
-    if ! sudo apt-get install -y python3-pyside6.qtcore python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtsvg 2>/dev/null; then
-        echo "Notice: python3-pyside6 packages not found in apt repositories. Installing via pip..."
-        sudo pip3 install --break-system-packages pyside6 psutil 2>/dev/null || pip3 install --break-system-packages pyside6 psutil 2>/dev/null || pip3 install pyside6 psutil || true
+    if ! sudo apt-get install -y python3-pyside6.qtcore python3-pyside6.qtwidgets python3-pyside6.qtgui python3-pyside6.qtsvg; then
+        echo "Notice: python3-pyside6 packages not in apt. Installing via pip..."
+        sudo pip3 install --break-system-packages pyside6 psutil || pip3 install --break-system-packages pyside6 psutil || true
     fi
 elif command -v dnf &>/dev/null; then
     echo "-> Detected Fedora / RHEL (dnf package manager)."
@@ -41,11 +41,11 @@ if ! command -v "$PY_BIN" &>/dev/null; then
     PY_BIN="python"
 fi
 
-if ! "$PY_BIN" -c "import PySide6; import psutil" &>/dev/null; then
-    echo "Notice: PySide6 or psutil missing in $PY_BIN environment. Installing via pip..."
-    sudo "$PY_BIN" -m pip install --break-system-packages pyside6 psutil 2>/dev/null || \
-    "$PY_BIN" -m pip install --break-system-packages pyside6 psutil 2>/dev/null || \
-    "$PY_BIN" -m pip install pyside6 psutil 2>/dev/null || true
+if ! "$PY_BIN" -c "import PySide6.QtWidgets, PySide6.QtCore, PySide6.QtGui, psutil" 2>/dev/null; then
+    echo "Notice: PySide6.QtWidgets or psutil missing in $PY_BIN environment. Installing via pip..."
+    sudo "$PY_BIN" -m pip install --break-system-packages pyside6 psutil || \
+    "$PY_BIN" -m pip install --break-system-packages pyside6 psutil || \
+    "$PY_BIN" -m pip install pyside6 psutil || true
 fi
 
 # 3. Deploy to /opt/nuxarchy
@@ -68,7 +68,7 @@ else
     exit 1
 fi
 
-if ! "$PY_BIN" -c "import PySide6" &>/dev/null; then
+if ! "$PY_BIN" -c "import PySide6.QtWidgets" &>/dev/null; then
     echo "========================================================"
     echo "  [!] NUXARCHY: PySide6 is not installed on your system  "
     echo "========================================================"
