@@ -116,14 +116,14 @@ QPushButton.topTabBtnActive {
 }
 
 /* --- CARDS & PANELS --- */
-QFrame.nuxarchyCard, QFrame.omenCard {
+QFrame.nuxarchyCard {
     background-color: #12141A;
     border: 1px solid #1A1D27;
     border-radius: 8px;
     padding: 14px;
 }
 
-QFrame.nuxarchyCard:hover, QFrame.omenCard:hover {
+QFrame.nuxarchyCard:hover {
     border: 1px solid #282D3D;
 }
 

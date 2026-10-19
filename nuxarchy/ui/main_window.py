@@ -243,7 +243,6 @@ class MainWindow(QMainWindow):
 
         self.btn_device = self._nav_btn(f"{self.device_label_base}  ▲")
         self.btn_device.clicked.connect(self._toggle_device_tree)
-        self.btn_omen16 = self.btn_device  # Compatibility alias
         layout.addWidget(self.btn_device)
 
         self.device_sub_container = QWidget()

@@ -1,5 +1,5 @@
 """
-AMD Integrated GPU Monitor (Radeon 780M / RDNA 3)
+AMD Integrated GPU Monitor
 Reads utilization, VRAM usage, clock speeds, and temperature via Linux DRM sysfs.
 """
 

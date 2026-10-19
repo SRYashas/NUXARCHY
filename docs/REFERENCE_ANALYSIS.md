@@ -10,13 +10,12 @@ This document records the reverse-engineering analysis of the Windows reference 
   - `D:\NUXARCHY\AD2F1837.OMENCommandCenter_1101.2609.11.0_x64__v10z8vjag6ke6` (Version: 1101.2609.11.0, x64 MSIX package): **Confirmed accessible and analyzed**.
   - `D:\NUXARCHY\AD2F1837.OMENLightStudio_1.0.69.0_x64__v10z8vjag6ke6` (Version: 1.0.69.0, x64 MSIX package): **Confirmed accessible and analyzed**.
 
-### Host & Target Environment Audit
-- **System**: HP OMEN by HP Gaming Laptop 16-xd0xxx
-- **Motherboard / BaseBoard ID**: HP 8BCD (Version 78.56)
-- **BIOS**: Insyde F.31 (HPQOEM - 2)
-- **CPU**: AMD Ryzen 7 7840HS (8 cores, 16 threads, Zen 4 Phoenix)
-- **iGPU**: AMD Radeon 780M Graphics (RDNA 3)
-- **dGPU**: NVIDIA GeForce RTX 4050 Laptop GPU (6 GB GDDR6, AD107M)
+### Target Environment Architecture
+- **System Architecture**: High-Performance x86_64 Laptop / Workstation
+- **Firmware / ACPI**: Insyde / UEFI with ACPI platform profiles
+- **CPU**: Multi-Core Processor (AMD Ryzen / Intel Core)
+- **iGPU**: Integrated Display Graphics (amdgpu / Intel Iris)
+- **dGPU**: NVIDIA Dedicated Graphics GPU
 - **Target OS**: Arch Linux with NUXARCHY, Wayland / Hyprland compositor
 
 ---
@@ -121,7 +120,7 @@ Reconstructed from `HP.Omen.GraphicsSwitcherModule.dll`:
 
 | Category | Item | Verification Status | Evidence / Notes |
 | :--- | :--- | :--- | :--- |
-| **Confirmed** | HP WMI ACPI PNP0C14 Interface | Confirmed | `hpqBIntM`, `hpqBDataIn` present on host HP 8BCD motherboard. |
+| **Confirmed** | HP WMI ACPI PNP0C14 Interface | Confirmed | `hpqBIntM`, `hpqBDataIn` present on compatible HP platform motherboards. |
 | **Confirmed** | 4-Zone Lighting Protocol & Packet Offsets | Confirmed | Reversed from `OmenFourZoneLighting.dll` and field constant table. |
 | **Confirmed** | Platform Profiles (Quiet, Balanced, Performance) | Confirmed | Matches Linux `hp-wmi` kernel driver implementation (`drivers/platform/x86/hp/hp-wmi.c`). |
 | **Confirmed** | NVIDIA GPU Telemetry | Confirmed | Native Linux NVML library (`libnvidia-ml.so.1`) provides 1:1 parity with Windows NVAPI. |

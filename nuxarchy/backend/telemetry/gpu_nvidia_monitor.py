@@ -1,5 +1,5 @@
 """
-NVIDIA Dedicated GPU Monitor (GeForce RTX 4050 Laptop GPU)
+NVIDIA Dedicated GPU Monitor
 Interfaces directly with NVML (NVIDIA Management Library) C API via ctypes,
 with graceful fallbacks to nvidia-smi and simulated telemetry.
 """

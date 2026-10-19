@@ -123,7 +123,3 @@ class _RingArcCanvas(QWidget):
         font_sub = QFont("Segoe UI", 10, QFont.Bold)
         painter.setFont(font_sub)
         painter.drawText(QRectF(0, center_y + 12, w, 20), Qt.AlignCenter, self.card.metric_label)
-
-
-# Backward compatibility alias
-OmenRingGaugeCard = NuxRingGaugeCard

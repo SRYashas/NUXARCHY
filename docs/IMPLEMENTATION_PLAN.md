@@ -16,7 +16,7 @@ This implementation plan delivers a production-grade, native Linux application c
 ---
 
 ## Phase 2: Hardware Audit & Capability Architecture (COMPLETED)
-- [x] Audit the actual host machine (HP OMEN 16-xd0xxx, AMD Ryzen 7 7840HS, NVIDIA RTX 4050, Baseboard 8BCD).
+- [x] Audit the Linux hardware platform architecture (x86_64 host, dynamic DMI probing, dual-GPU topology).
 - [x] Map Linux kernel modules (`hp-wmi`, `amdgpu`, `nvidia`, `k10temp`).
 - [x] Formulate `CapabilityRegistry` to dynamically enable/disable UI controls based on probed hardware.
 - [x] Publish `docs/HARDWARE_COMPATIBILITY.md`, `docs/ARCHITECTURE.md`, and `docs/SECURITY_MODEL.md`.
@@ -28,8 +28,8 @@ This implementation plan delivers a production-grade, native Linux application c
 - [ ] Implement `backend/capability.py` for comprehensive read-only hardware detection.
 - [ ] Implement asynchronous telemetry parsers:
   - `cpu_monitor.py` (usage, cores, frequencies, temperatures).
-  - `gpu_amd_monitor.py` (Radeon 780M utilization, VRAM, temp).
-  - `gpu_nvidia_monitor.py` (NVML C bindings for RTX 4050 clocks, temp, power, VRAM).
+  - `gpu_amd_monitor.py` (Integrated GPU utilization, VRAM, temp).
+  - `gpu_nvidia_monitor.py` (NVML C bindings for discrete GPU clocks, temp, power, VRAM).
   - `memory_monitor.py` (RAM used/free, swap).
   - `network_monitor.py` (RX/TX throughput).
 - [ ] Implement simulated / hardware-independent fallback mode for rapid development and testing across environments.
@@ -58,7 +58,7 @@ This implementation plan delivers a production-grade, native Linux application c
   - Fan mode selector (Auto vs. Maximum Cooling boost).
   - Clear explanations of hardware limits (no fake slider controls if firmware restricts custom curves).
 - [ ] **GPU Mode Management (`gpu_view.py`)**:
-  - Detection of dual GPUs (Radeon 780M + RTX 4050).
+  - Detection of dual GPUs (Integrated iGPU + Dedicated dGPU).
   - Identification of active rendering GPU.
   - Display power status (Active vs. Suspended / Runtime D3cold).
   - Explanation and configuration of PRIME offloading (`prime-run`).

@@ -15,30 +15,26 @@
 ## Key Features
 
 - **Cyberpunk Loading Screen**: Native black splash screen with animated cyber telemetry, initializing hardware probes and displaying the NUXARCHY logo.
-- **System Dashboard**: Real-time hardware vitals (CPU utilization & per-core clock frequencies, AMD Radeon 780M iGPU, dedicated NVIDIA GeForce RTX 4050 Laptop GPU, RAM allocation, Swap usage, upload/download network speed, and fan telemetry) with smooth 60 FPS rolling history charts.
-- **Performance & Power Management**: Native ACPI platform profile switching (**Quiet / Low-Power**, **Balanced / Default**, and **Performance / Extreme Boost**) via `hp-wmi` and `power-profiles-daemon`.
+- **System Dashboard**: Real-time hardware vitals (CPU utilization & per-core clock frequencies, integrated GPU, dedicated high-performance GPU, RAM allocation, Swap usage, upload/download network speed, and fan telemetry) with smooth 60 FPS rolling history charts.
+- **Performance & Power Management**: Native ACPI platform profile switching (**Quiet / Low-Power**, **Balanced / Default**, and **Performance / Extreme Boost**) via Linux ACPI `platform_profile` and `power-profiles-daemon`.
 - **Thermal & Fan Control**: Real-time CPU and GPU temperature curves with thermal throttle warnings, live fan RPM readings, and **Maximum Cooling Boost** (forcing fans to 100% duty cycle) with firmware failsafe protection.
 - **Hybrid Graphics (NVIDIA PRIME & MUX)**: Dual GPU topology management, dynamic runtime D3cold status monitoring, one-click PRIME offloading configuration, and hardware MUX switch documentation.
-- **RGB Lighting Studio (Keyboard RGB Control)**: 4-zone RGB keyboard lighting controller utilizing native hardware WMI `"SECU"` packets (`Command 0x20008 / Subcommand 0x03`). Features dynamic effect engines (**Static**, **Breathing**, **Color Cycle**, **Wave**) and persistent JSON lighting profile management.
+- **RGB Lighting Studio (Keyboard RGB Control)**: 4-zone RGB keyboard lighting controller with dynamic effect engines (**Static**, **Breathing**, **Color Cycle**, **Wave**) and persistent JSON lighting profile management.
 - **Optimizer Suite**: Dedicated system optimizer (**Quick Setup**, **Booster**, and **Cleaner**) with real-time memory boost, optimization item toggles, and junk file disk cleaner.
 - **My Games & Application Booster**: Automatic library discovery for installed Steam and Linux native titles, per-game dedicated GPU routing (`__NV_PRIME_RENDER_OFFLOAD=1`), and automated performance profile linking.
-- **System Diagnostics**: Detailed hardware audit including DMI strings, Motherboard BaseBoard ID (`8BCD`), BIOS version, PCIe hierarchy, and loaded kernel modules.
-- **Principle of Least Privilege**: The GUI runs strictly as the regular user (`UID >= 1000`). Narrowly-scoped privileged hardware modifications are handled safely via Polkit (`nuxarchy-hardware-helper`).
+- **System Diagnostics**: Detailed hardware audit including DMI strings, Motherboard BaseBoard ID, BIOS version, PCIe hierarchy, and loaded kernel modules.
+- **Zero-Prompt Root Daemon Architecture**: Dedicated background daemon (`nuxarchy-daemon.service`) for instant 24/7 telemetry and privileged ACPI writes via Unix domain socket `/run/nuxarchy/nuxarchy.sock` with zero repeated password prompts.
 
 ---
 
-## Target Hardware Specifications
+## Universal Hardware Architecture
 
-Tested and optimized for:
-- **Hardware**: HP Gaming Laptop 16-xd0xxx / High-Performance Mobile Workstation
-- **Motherboard / BaseBoard ID**: HP 8BCD (Version 78.56)
-- **BIOS**: Insyde F.31
-- **Processor**: AMD Ryzen 7 7840HS w/ Radeon 780M Graphics (8C/16T, Zen 4)
-- **Integrated GPU**: AMD Radeon 780M (amdgpu, RDNA 3)
-- **Dedicated GPU**: NVIDIA GeForce RTX 4050 Laptop GPU (6 GB GDDR6)
-- **Operating System**: Arch Linux (Wayland / Hyprland) & Cross-Platform
-
-*Compatible with Linux gaming laptops, Victus, and gaming desktops through dynamic hardware discovery.*
+Designed with automatic hardware probing for any modern Linux gaming laptop or workstation:
+- **Processor**: Modern x86_64 Multi-Core CPUs (AMD Ryzen 5000/6000/7000/8000/AI 300 series, Intel Core 11th-15th Gen).
+- **Graphics Architecture**: Dual GPU topology with automatic discovery (AMD Radeon Graphics, Intel Arc/Iris, NVIDIA GeForce RTX/GTX dedicated GPUs).
+- **Cooling & Sensors**: Universal Linux `hwmon` sensor drivers (`k10temp`, `zenpower`, `coretemp`, `amdgpu`, `nvidia`).
+- **Power Delivery**: Linux ACPI platform profiles (`/sys/firmware/acpi/platform_profile`) and `powerprofilesctl`.
+- **Operating System**: Arch Linux, Fedora, Debian/Ubuntu, and all modern Wayland/X11 desktop environments.
 
 ---
 
