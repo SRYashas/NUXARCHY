@@ -87,13 +87,17 @@ class SystemSampler:
         return snap
 
     def _read_fan_rpm(self) -> Optional[int]:
-        fan_paths = glob.glob("/sys/class/hwmon/hwmon*/fan1_input")
-        if fan_paths and os.path.exists(fan_paths[0]):
+        fan_paths = glob.glob("/sys/class/hwmon/hwmon*/fan*_input")
+        for p in fan_paths:
             try:
-                with open(fan_paths[0], "r") as f:
-                    return int(f.read().strip())
+                with open(p, "r") as f:
+                    val = int(f.read().strip())
+                    if val > 0:
+                        return val
             except Exception:
-                pass
+                continue
+        if self.caps and not self.caps.can_read_fan_rpm:
+            return None
         return 2450  # Realistic baseline fallback for simulation
 
     def _read_platform_profile(self) -> str:

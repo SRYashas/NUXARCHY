@@ -224,10 +224,19 @@ class CapabilityDetector:
                         caps.has_integrated_gpu = True
                         caps.integrated_gpu_name = "AMD Radeon Graphics (amdgpu)"
                         caps.can_monitor_gpu = True
+                    elif vendor_id == "0x8086":  # Intel
+                        caps.has_integrated_gpu = True
+                        caps.integrated_gpu_name = "Intel Graphics (i915/xe)"
+                        caps.can_monitor_gpu = True
                     elif vendor_id == "0x10de":  # NVIDIA
                         caps.has_discrete_gpu = True
                         caps.discrete_gpu_name = "NVIDIA GeForce Dedicated GPU"
                         caps.can_monitor_gpu = True
+                    elif vendor_id:
+                        if not caps.has_integrated_gpu and not caps.has_discrete_gpu:
+                            caps.has_integrated_gpu = True
+                            caps.integrated_gpu_name = "Universal Linux Graphics"
+                            caps.can_monitor_gpu = True
 
         # NVIDIA driver check
         if os.path.exists("/proc/driver/nvidia/version"):
