@@ -21,13 +21,24 @@ from nuxarchy.ui.splash_screen import SplashScreen
 
 
 def main():
-    parser = argparse.ArgumentParser(description="NUXARCHY: Arch Linux Control Center")
+    parser = argparse.ArgumentParser(description="NUXARCHY: Linux Hardware Control Center")
     parser.add_argument("--simulated", action="store_true", help="Force simulated hardware mode for development/testing")
     parser.add_argument("--minimized", action="store_true", help="Start application minimized")
     parser.add_argument("--no-splash", action="store_true", help="Skip loading splash screen")
     args = parser.parse_args()
 
-    app = QApplication(sys.argv)
+    # Helpful warning for headless sessions (SSH / WSL without X11 or Wayland display)
+    if sys.platform != "win32" and not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
+        print("[!] Warning: Neither DISPLAY nor WAYLAND_DISPLAY environment variables are set.", file=sys.stderr)
+        print("[!] If running over SSH, please use 'ssh -X' or ensure an active desktop display server is running.", file=sys.stderr)
+
+    try:
+        app = QApplication(sys.argv)
+    except Exception as e:
+        print(f"[!] Error: Could not initialize Qt GUI application: {e}", file=sys.stderr)
+        print("[!] Please ensure you are running NUXARCHY in an active X11 or Wayland desktop session.", file=sys.stderr)
+        sys.exit(1)
+
     app.setApplicationName("NUXARCHY")
     app.setOrganizationName("Nuxarchy")
 
