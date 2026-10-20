@@ -1,5 +1,5 @@
 """
-NUXARCHY: Linux-Native HP OMEN Gaming Hub Replacement
+NUXARCHY: Linux-Native Gaming Hub
 """
 
 __version__ = "2.0.0"

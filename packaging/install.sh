@@ -7,7 +7,7 @@
 set -euo pipefail
 
 echo "========================================================"
-echo "          NUXARCHY: HP OMEN Gaming Hub Installer        "
+echo "          NUXARCHY: Linux Gaming Hub Installer          "
 echo "========================================================"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

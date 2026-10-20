@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.client = DaemonClient.instance()
 
-        self.setWindowTitle("NUXARCHY // HP OMEN Gaming Hub")
+        self.setWindowTitle("NUXARCHY // Linux Gaming Hub")
         self.resize(1200, 780)
         self.setMinimumSize(1080, 700)
 

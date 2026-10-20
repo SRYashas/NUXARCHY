@@ -1,8 +1,8 @@
-# NUXARCHY: Linux-Native HP OMEN Gaming Hub Replacement
+# NUXARCHY: Linux-Native Gaming Hub
 
 <div align="center">
-  <h3>Complete Architectural Rebuild • Linux Kernel 6.1+ • D-Bus System Service • PyQt6</h3>
-  <p>Production-grade replacement for HP OMEN Gaming Hub engineered specifically for Linux.</p>
+  <h3>Advanced Hardware Control Center • Linux Kernel 6.1+ • D-Bus System Service • PyQt6</h3>
+  <p>High-performance native Linux gaming hub, hardware control center, and telemetry monitor.</p>
 </div>
 
 ![Platform](https://img.shields.io/badge/Platform-Linux%20Kernel%206.1%2B-00E5FF?style=for-the-badge)
@@ -12,14 +12,155 @@
 
 ---
 
-## Architecture Overview
+## ⚡ 1-Click Automated Installer (Recommended)
+
+NUXARCHY includes an automated interactive installer that detects your Linux distribution, prompts to install all required dependencies automatically, sets up systemd background services, installs D-Bus system bus permissions, and creates desktop application launchers.
+
+```bash
+# 1. Clone repository
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
+
+# 2. Make installer executable and run
+chmod +x packaging/install.sh
+./packaging/install.sh
+```
+
+> **Automated Dependency Prompt**: When executed, the installer will display:
+> ```text
+> Would you like to automatically install all dependencies (PyQt6, sdbus, psutil, polkit, nftables, etc.)? [Y/n]:
+> ```
+> Press **Enter** or **Y** and the installer will automatically configure your package manager, install all required runtime components, and start the background hardware daemon.
+
+---
+
+## 📦 Distribution-Specific Installation Guides
+
+If you prefer installing dependencies manually or want to inspect each step for your specific distribution:
+
+### 1. Arch Linux / Manjaro / EndeavourOS
+
+```bash
+# Update and install system dependencies
+sudo pacman -Syu --needed python python-pip python-pyqt6 python-psutil polkit power-profiles-daemon nftables lm_sensors
+
+# Clone repository
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
+
+# Install Python package
+pip install -e .
+
+# Install D-Bus policy, systemd service, and Polkit policy
+sudo cp packaging/org.nuxarchy.Daemon.conf /etc/dbus-1/system.d/
+sudo cp packaging/nuxarchy-daemon.service /etc/systemd/system/
+sudo cp packaging/com.nuxarchy.hub.policy /usr/share/polkit-1/actions/
+
+# Reload systemd and start the background daemon
+sudo systemctl daemon-reload
+sudo systemctl enable --now nuxarchy-daemon.service
+
+# Launch NUXARCHY
+nuxarchy
+```
+
+---
+
+### 2. Debian / Ubuntu / Kali Linux / Linux Mint / Pop!_OS
+
+```bash
+# Update repositories and install system packages
+sudo apt update
+sudo apt install -y python3 python3-pip python3-pyqt6 python3-psutil polkitd power-profiles-daemon libxcb-cursor0 nftables lm-sensors
+
+# Clone repository
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
+
+# Install Python package and sdbus
+sudo pip3 install --break-system-packages -e . || pip3 install -e .
+
+# Install D-Bus policy, systemd service, and Polkit policy
+sudo cp packaging/org.nuxarchy.Daemon.conf /etc/dbus-1/system.d/
+sudo cp packaging/nuxarchy-daemon.service /etc/systemd/system/
+sudo cp packaging/com.nuxarchy.hub.policy /usr/share/polkit-1/actions/
+
+# Reload systemd and start the background daemon
+sudo systemctl daemon-reload
+sudo systemctl enable --now nuxarchy-daemon.service
+
+# Launch NUXARCHY
+nuxarchy
+```
+
+---
+
+### 3. Fedora / RHEL / Nobara
+
+```bash
+# Install system packages
+sudo dnf install -y python3 python3-pip python3-pyqt6 python3-psutil polkit power-profiles-daemon nftables lm_sensors
+
+# Clone repository
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
+
+# Install Python package
+pip install --user -e .
+
+# Install D-Bus policy, systemd service, and Polkit policy
+sudo cp packaging/org.nuxarchy.Daemon.conf /etc/dbus-1/system.d/
+sudo cp packaging/nuxarchy-daemon.service /etc/systemd/system/
+sudo cp packaging/com.nuxarchy.hub.policy /usr/share/polkit-1/actions/
+
+# Reload systemd and start the background daemon
+sudo systemctl daemon-reload
+sudo systemctl enable --now nuxarchy-daemon.service
+
+# Launch NUXARCHY
+nuxarchy
+```
+
+---
+
+### 4. openSUSE (Tumbleweed / Leap)
+
+```bash
+# Install system packages
+sudo zypper install -y python3 python3-pip python3-pyqt6 python3-psutil polkit power-profiles-daemon nftables
+
+# Clone repository
+git clone https://github.com/SRYashas/NUXARCHY.git
+cd NUXARCHY
+
+# Install Python package
+pip install --user -e .
+
+# Install D-Bus policy, systemd service, and Polkit policy
+sudo cp packaging/org.nuxarchy.Daemon.conf /etc/dbus-1/system.d/
+sudo cp packaging/nuxarchy-daemon.service /etc/systemd/system/
+sudo cp packaging/com.nuxarchy.hub.policy /usr/share/polkit-1/actions/
+
+# Reload systemd and start the background daemon
+sudo systemctl daemon-reload
+sudo systemctl enable --now nuxarchy-daemon.service
+
+# Launch NUXARCHY
+nuxarchy
+```
+
+---
+
+## 🏗️ Architecture Overview
 
 NUXARCHY operates using a two-tier least-privilege architecture:
+
 1. **Unprivileged GUI Client (`nuxarchy`)**:
    - Modern cyber-industrial desktop UI built with PyQt6 and anti-aliased `QPainter` canvas widgets.
    - Left 220px vertical navigation rail, custom `RadialGauge` telemetry gauges, interactive 2D `FanCurveEditor` spline canvas, 4-zone `ZoneKeyboardWidget`, and selectable `GlowCard` controls.
-   - Connects to the system bus via `sdbus` with graceful standalone fallback.
-   - Binds to physical HP OMEN keys via D-Bus signal `omen_hotkey_pressed` for instantaneous window toggling.
+   - Connects to the system bus via `sdbus` with transparent standalone fallback.
+   - Binds to physical gaming keys via D-Bus signal `omen_hotkey_pressed` for instantaneous window toggling.
+
 2. **Privileged Systemd Root Service (`nuxarchy-daemon`)**:
    - Runs as root via systemd (`nuxarchy-daemon.service`) with bounded ambient capabilities (`CAP_SYS_RAWIO`, `CAP_NET_ADMIN`, `CAP_SYS_NICE`, `CAP_DAC_OVERRIDE`).
    - Exports the `org.nuxarchy.Daemon` interface at `/org/nuxarchy/Daemon` on the D-Bus System Bus.
@@ -27,7 +168,7 @@ NUXARCHY operates using a two-tier least-privilege architecture:
 
 ---
 
-## Hardware Adapter Specifications
+## 🛠️ Hardware Adapter Specifications
 
 ### 1. Thermal & Fan Engine (`fan_controller.py`)
 - **Dynamic Sysfs Discovery**: Scans `/sys/class/hwmon/` matching `hp`, `hp-wmi`, `omen`, `coretemp`, `k10temp`, and `amdgpu`.
@@ -48,7 +189,7 @@ NUXARCHY operates using a two-tier least-privilege architecture:
 
 ### 3. ACPI Platform Profiles (`platform_profile.py`)
 - Maps UI profiles (`eco`, `balanced`, `performance`) to kernel choices from `/sys/firmware/acpi/platform_profile_choices`.
-- Pairs profile changes with CPU frequency governors (`powersave` vs `performance`).
+- Pairs profile changes with CPU frequency scaling governors (`powersave` vs `performance`).
 
 ### 4. GPU / MUX Switcher (`gpu_switch.py`)
 - Controls display multiplexer between **Hybrid (Optimus)**, **Discrete (dGPU Direct)**, and **Integrated (iGPU Only)**.
@@ -56,8 +197,8 @@ NUXARCHY operates using a two-tier least-privilege architecture:
 - Fallback backend: `envycontrol` CLI.
 - Provides confirmation dialogs and reboot/logout guardrails.
 
-### 5. OMEN Light Studio (`openrgb_client.py`)
-- **Engine 1**: Direct HP WMI / Kernel Multicolor sysfs (`/sys/class/leds/hp::kbd_backlight/`).
+### 5. RGB Light Studio (`openrgb_client.py`)
+- **Engine 1**: Direct WMI / Kernel Multicolor sysfs (`/sys/class/leds/*::kbd_backlight/`).
 - **Engine 2**: OpenRGB Raw TCP SDK Client (`127.0.0.1:6742`) via 16-byte protocol packets (`b'ORGB'`).
 - **Software Animation Engine**: Real-time animation loop for Static, Breathing, Color Cycle, and Wave across 4 keyboard zones.
 
@@ -77,43 +218,14 @@ NUXARCHY operates using a two-tier least-privilege architecture:
 
 ### 9. Hardware Hotkey Listener (`hotkey_listener.py`)
 - Non-blocking select loop parsing Linux 24-byte `input_event` structs from `/dev/input/event*`.
-- Captures dedicated OMEN keys (`KEY_PROG1` 148, `KEY_FAVORITES` 364, WMI `0x21a9`) to toggle GUI visibility.
+- Captures dedicated gaming keys (`KEY_PROG1` 148, `KEY_FAVORITES` 364, WMI `0x21a9`) to toggle GUI visibility.
 
 ---
 
-## Installation & Setup
+## 🧪 Verification & Test Suite
 
-### Requirements
-- Linux Kernel 6.1+ (Arch Linux, Fedora, Ubuntu, Debian, Pop!_OS)
-- Python 3.10+
-- `systemd`, `dbus`, `nftables`, `polkit`
-
-### Setup Steps
-```bash
-# 1. Clone repository
-git clone https://github.com/SRYashas/NUXARCHY.git
-cd NUXARCHY
-
-# 2. Install Python package
-pip install -e .
-
-# 3. Install systemd service, D-Bus policy, and Polkit rule
-sudo cp packaging/org.nuxarchy.Daemon.conf /etc/dbus-1/system.d/
-sudo cp packaging/nuxarchy-daemon.service /etc/systemd/system/
-sudo cp packaging/com.nuxarchy.hub.policy /usr/share/polkit-1/actions/
-
-# 4. Reload systemd and start the root daemon
-sudo systemctl daemon-reload
-sudo systemctl enable --now nuxarchy-daemon.service
-
-# 5. Launch the unprivileged GUI
-nuxarchy
-```
-
----
-
-## Running Verification Tests
+Run the full automated test suite using pytest:
 
 ```bash
-pytest tests/test_fan_curve_safety.py tests/test_msr_packing.py tests/test_daemon_ipc.py -v
+pytest -v
 ```

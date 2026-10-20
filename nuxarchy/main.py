@@ -20,7 +20,7 @@ from nuxarchy import __version__
 
 
 def main():
-    parser = argparse.ArgumentParser(description="NUXARCHY: Linux-Native HP OMEN Gaming Hub")
+    parser = argparse.ArgumentParser(description="NUXARCHY: Linux-Native Gaming Hub")
     parser.add_argument("--minimized", action="store_true", help="Start application minimized to tray/background")
     parser.add_argument("--version", action="version", version=f"NUXARCHY {__version__}")
     args, unknown = parser.parse_known_args()
