@@ -4,22 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nuxarchy"
-version = "1.0.0"
-description = "Native Arch Linux Gaming Hub & Hardware Control Center"
+version = "2.0.0"
+description = "Linux-Native HP OMEN Gaming Hub Replacement"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "GPL-3.0-or-later" }
 authors = [
     { name = "NUXARCHY Team", email = "support@nuxarchy.org" }
 ]
 dependencies = [
-    "PySide6",
-    "psutil",
+    "PyQt6>=6.5.0",
+    "sdbus>=0.8.0",
+    "psutil>=5.9.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
 ]
 
 [project.scripts]
 nuxarchy = "nuxarchy.main:main"
-nuxarchy-daemon = "nuxarchy.services.daemon:main"
+nuxarchy-daemon = "nuxarchy.services.daemon:run_daemon"
 
 [tool.setuptools.packages.find]
 include = ["nuxarchy*"]

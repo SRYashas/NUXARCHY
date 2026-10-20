@@ -39,7 +39,8 @@ class TestHardwareAdapters(unittest.TestCase):
     def test_fan_controller(self):
         controller = FanController()
         modes = controller.get_supported_modes()
-        self.assertEqual(modes, ["auto", "max"])
+        self.assertIn("auto", modes)
+        self.assertIn("max", modes)
         self.assertEqual(controller.get_current_mode(), "auto")
 
         # Set max mode

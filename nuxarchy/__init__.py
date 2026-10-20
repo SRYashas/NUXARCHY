@@ -1,9 +1,11 @@
 """
-NUXARCHY: Native Arch Linux Gaming Hub & Hardware Control Center
+NUXARCHY: Linux-Native HP OMEN Gaming Hub Replacement
 """
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
-from nuxarchy.main import main
+def main():
+    from nuxarchy.main import main as _main
+    return _main()
 
 __all__ = ["main", "__version__"]

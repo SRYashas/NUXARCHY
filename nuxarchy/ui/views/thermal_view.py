@@ -1,161 +1,172 @@
 """
-NUXARCHY Hardware Center: Thermal Management & Fan Control View
-Monitors hardware temperatures, fan speeds (RPM), thermal limits, and maximum cooling boost.
+NUXARCHY Thermal & Fans View
+Mode selector pills: [ AUTO (BIOS EC) ], [ MAX TURBO (100% RPM) ], [ CUSTOM CURVE ].
+Embeds FanCurveEditor widget in the center.
+Preset curve buttons: Silent, Balanced, Aggressive Gaming, and [ APPLY CURVE ].
 """
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton,
-    QGridLayout, QProgressBar, QMessageBox
+from typing import List, Tuple
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QFrame,
+    QPushButton,
+    QMessageBox,
 )
-from PySide6.QtCore import Qt
+from nuxarchy.ui.widgets.fan_curve_editor import FanCurveEditor
+from nuxarchy.services.daemon_client import DaemonClient
 
-from nuxarchy.backend.capability import HardwareCapabilities
-from nuxarchy.backend.adapters.fan_controller import FanController
-from nuxarchy.backend.telemetry.system_monitor import SystemSnapshot
+PRESET_SILENT = [(35.0, 15.0), (50.0, 25.0), (65.0, 40.0), (80.0, 65.0), (90.0, 100.0)]
+PRESET_BALANCED = [(30.0, 20.0), (45.0, 35.0), (60.0, 50.0), (75.0, 75.0), (85.0, 100.0)]
+PRESET_AGGRESSIVE = [(30.0, 35.0), (45.0, 55.0), (60.0, 75.0), (75.0, 95.0), (82.0, 100.0)]
 
 
 class ThermalView(QWidget):
-    def __init__(self, caps: HardwareCapabilities, parent=None):
-        super().__init__(parent)
-        self.caps = caps
-        self.controller = FanController()
+    """Cooling mode switching and interactive fan curve spline editor."""
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(20)
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
+        self.client = DaemonClient.instance()
+        self._current_mode = "auto"
+        self._setup_ui()
+        self.refresh_state()
+
+    def _setup_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(24, 20, 24, 20)
+        main_layout.setSpacing(18)
 
         # Header
         header = QVBoxLayout()
-        title = QLabel("THERMAL MANAGEMENT & COOLING")
-        title.setStyleSheet("color: #FFFFFF; font-size: 20px; font-weight: 800; letter-spacing: 1px;")
+        header.setSpacing(4)
+        title = QLabel("THERMAL & COOLING ENGINE")
+        title.setProperty("class", "view-title")
+        subtitle = QLabel("Hardware PWM modulation, HP EC keep-alive loop, and custom piecewise curve interpolation")
+        subtitle.setProperty("class", "view-subtitle")
         header.addWidget(title)
+        header.addWidget(subtitle)
+        main_layout.addLayout(header)
 
-        sub = QLabel("Monitor CPU/GPU temperatures, fan telemetry, and switch between Auto and Max Cooling.")
-        sub.setStyleSheet("color: #9CA3AF; font-size: 13px;")
-        header.addWidget(sub)
-        layout.addLayout(header)
+        # ── Mode Selector Pills ──────────────────────────────────────────────
+        pills_card = QFrame()
+        pills_card.setProperty("class", "cyber-card")
+        pills_layout = QHBoxLayout(pills_card)
+        pills_layout.setContentsMargins(16, 12, 16, 12)
+        pills_layout.setSpacing(12)
 
-        # Thermal Telemetry Cards
-        grid = QGridLayout()
-        grid.setSpacing(14)
-
-        # CPU Temp Card
-        self.card_cpu_temp = QFrame()
-        self.card_cpu_temp.setProperty("class", "cardFrame")
-        c_layout = QVBoxLayout(self.card_cpu_temp)
-        c_title = QLabel("CPU PACKAGE TEMPERATURE")
-        c_title.setProperty("class", "cardTitle")
-        c_layout.addWidget(c_title)
-        self.val_cpu_temp = QLabel("48°C")
-        self.val_cpu_temp.setProperty("class", "cardValue")
-        c_layout.addWidget(self.val_cpu_temp)
-        self.bar_cpu_temp = QProgressBar()
-        self.bar_cpu_temp.setRange(0, 105)
-        self.bar_cpu_temp.setValue(48)
-        c_layout.addWidget(self.bar_cpu_temp)
-        self.sub_cpu_temp = QLabel("Throttle Limit: 100°C • Status: Optimal")
-        self.sub_cpu_temp.setProperty("class", "cardSubtext")
-        c_layout.addWidget(self.sub_cpu_temp)
-        grid.addWidget(self.card_cpu_temp, 0, 0)
-
-        # GPU Temp Card
-        self.card_gpu_temp = QFrame()
-        self.card_gpu_temp.setProperty("class", "cardFrame")
-        g_layout = QVBoxLayout(self.card_gpu_temp)
-        gpu_name = self.caps.discrete_gpu_name.upper() if (self.caps and self.caps.has_discrete_gpu and self.caps.discrete_gpu_name != "None") else "GPU"
-        g_title = QLabel(f"{gpu_name} TEMPERATURE")
-        g_title.setProperty("class", "cardTitle")
-        g_layout.addWidget(g_title)
-        self.val_gpu_temp = QLabel("52°C")
-        self.val_gpu_temp.setProperty("class", "cardValue")
-        g_layout.addWidget(self.val_gpu_temp)
-        self.bar_gpu_temp = QProgressBar()
-        self.bar_gpu_temp.setRange(0, 95)
-        self.bar_gpu_temp.setValue(52)
-        g_layout.addWidget(self.bar_gpu_temp)
-        self.sub_gpu_temp = QLabel("Thermal Limit: 87°C • Status: Optimal")
-        self.sub_gpu_temp.setProperty("class", "cardSubtext")
-        g_layout.addWidget(self.sub_gpu_temp)
-        grid.addWidget(self.card_gpu_temp, 0, 1)
-
-        layout.addLayout(grid)
-
-        # Fan Control Mode Card
-        fan_card = QFrame()
-        fan_card.setProperty("class", "cardFrame")
-        f_layout = QVBoxLayout(fan_card)
-        f_layout.setSpacing(14)
-
-        f_title = QLabel("FAN SPEED & COOLING MODES")
-        f_title.setProperty("class", "cardTitle")
-        f_layout.addWidget(f_title)
-
-        f_btn_layout = QHBoxLayout()
-        f_btn_layout.setSpacing(12)
-
-        self.btn_auto = QPushButton("AUTO COOLING\n(Firmware Dynamic Curve)")
-        self.btn_auto.setProperty("class", "actionButton")
+        self.btn_auto = QPushButton("AUTO (BIOS EC)")
         self.btn_auto.setCheckable(True)
-        self.btn_auto.setChecked(True)
-        self.btn_auto.clicked.connect(lambda: self._set_fan_mode("auto"))
-        f_btn_layout.addWidget(self.btn_auto)
+        self.btn_auto.setProperty("class", "cyber-btn-secondary")
+        self.btn_auto.clicked.connect(lambda: self._set_mode("auto"))
+        pills_layout.addWidget(self.btn_auto)
 
-        self.btn_max = QPushButton("MAXIMUM COOLING\n(Force 100% Fan RPM)")
-        self.btn_max.setProperty("class", "actionButton")
+        self.btn_max = QPushButton("MAX TURBO (100% RPM)")
         self.btn_max.setCheckable(True)
-        self.btn_max.clicked.connect(lambda: self._set_fan_mode("max"))
-        f_btn_layout.addWidget(self.btn_max)
+        self.btn_max.setProperty("class", "cyber-btn-secondary")
+        self.btn_max.clicked.connect(lambda: self._set_mode("max"))
+        pills_layout.addWidget(self.btn_max)
 
-        f_layout.addLayout(f_btn_layout)
+        self.btn_custom = QPushButton("CUSTOM CURVE")
+        self.btn_custom.setCheckable(True)
+        self.btn_custom.setProperty("class", "cyber-btn-secondary")
+        self.btn_custom.clicked.connect(lambda: self._set_mode("custom"))
+        pills_layout.addWidget(self.btn_custom)
 
-        # RPM & Status
-        self.lbl_fan_rpm = QLabel("Current Fan Speed: 2,450 RPM (Left & Right Turbines)")
-        self.lbl_fan_rpm.setStyleSheet("color: #00FFD1; font-weight: 700; font-size: 13px;")
-        f_layout.addWidget(self.lbl_fan_rpm)
+        main_layout.addWidget(pills_card)
 
-        # Safety & Hardware Architecture Notice
-        notice = QLabel(
-            "SAFETY NOTICE: On supported laptops, baseline fan curves are governed by the Embedded Controller (EC) "
-            "firmware to protect against hardware thermal runaway. 'Maximum Cooling' commands the firmware to boost fans "
-            "to 100% duty cycle. Undocumented manual register tampering is blocked to prevent battery/VRM damage."
-        )
-        notice.setWordWrap(True)
-        notice.setStyleSheet("color: #6B7280; font-size: 11px; margin-top: 6px;")
-        f_layout.addWidget(notice)
+        # ── Embedded FanCurveEditor Canvas ───────────────────────────────────
+        editor_card = QFrame()
+        editor_card.setProperty("class", "cyber-card")
+        ed_layout = QVBoxLayout(editor_card)
+        ed_layout.setContentsMargins(18, 16, 18, 16)
+        ed_layout.setSpacing(12)
 
-        layout.addWidget(fan_card)
-        layout.addStretch()
+        ed_head = QHBoxLayout()
+        ed_lbl = QLabel("PIECEWISE LINEAR FAN CURVE")
+        ed_lbl.setProperty("class", "card-heading")
+        ed_head.addWidget(ed_lbl)
+        ed_head.addStretch()
 
-    def _set_fan_mode(self, mode: str):
-        success, msg = self.controller.set_cooling_mode(mode)
-        if success:
-            self.btn_auto.setChecked(mode == "auto")
-            self.btn_max.setChecked(mode == "max")
-            self.lbl_fan_rpm.setText(f"Cooling Mode: {mode.upper()} • {msg}")
-        else:
-            QMessageBox.warning(self, "Fan Control", msg)
+        ed_sub = QLabel("Drag nodes horizontally and vertically (monotonic constraints enforced)")
+        ed_sub.setStyleSheet("color: #8E92A4; font-size: 10px;")
+        ed_head.addWidget(ed_sub)
+        ed_layout.addLayout(ed_head)
 
-    def update_telemetry(self, snap: SystemSnapshot):
-        cpu_t = snap.cpu.temperature_celsius or 0.0
-        gpu_t = snap.gpu_nvidia.temperature_celsius if (snap.gpu_nvidia and snap.gpu_nvidia.temperature_celsius is not None) else (snap.gpu_amd.temperature_celsius if snap.gpu_amd else 0.0) or 0.0
+        self.curve_editor = FanCurveEditor()
+        ed_layout.addWidget(self.curve_editor)
 
-        self.val_cpu_temp.setText(f"{cpu_t:.1f}°C")
-        self.bar_cpu_temp.setValue(int(cpu_t))
-        if cpu_t > 90:
-            self.val_cpu_temp.setStyleSheet("color: #FF2A54;")
-            self.sub_cpu_temp.setText("CAUTION: CPU Approaching Thermal Throttle Ceiling")
-        else:
-            self.val_cpu_temp.setStyleSheet("color: #FFFFFF;")
-            self.sub_cpu_temp.setText("Throttle Limit: 100°C • Status: Optimal")
+        # Presets & Apply Toolbar
+        toolbar = QHBoxLayout()
+        toolbar.setSpacing(10)
 
-        self.val_gpu_temp.setText(f"{gpu_t:.1f}°C")
-        self.bar_gpu_temp.setValue(int(gpu_t))
-        if gpu_t > 82:
-            self.val_gpu_temp.setStyleSheet("color: #FF2A54;")
-            self.sub_gpu_temp.setText("CAUTION: GPU Running Hot")
-        else:
-            self.val_gpu_temp.setStyleSheet("color: #FFFFFF;")
-            self.sub_gpu_temp.setText("Thermal Limit: 87°C • Status: Optimal")
+        p_lbl = QLabel("PRESETS:")
+        p_lbl.setStyleSheet("color: #8E92A4; font-weight: 700; font-size: 10px;")
+        toolbar.addWidget(p_lbl)
 
-        if snap.fan_rpm:
-            self.lbl_fan_rpm.setText(f"Current Fan Speed: {snap.fan_rpm:,} RPM (Mode: {self.controller.get_current_mode().upper()})")
+        btn_silent = QPushButton("Silent")
+        btn_silent.setProperty("class", "cyber-btn-secondary")
+        btn_silent.clicked.connect(lambda: self.curve_editor.set_curve(PRESET_SILENT))
+        toolbar.addWidget(btn_silent)
+
+        btn_bal = QPushButton("Balanced")
+        btn_bal.setProperty("class", "cyber-btn-secondary")
+        btn_bal.clicked.connect(lambda: self.curve_editor.set_curve(PRESET_BALANCED))
+        toolbar.addWidget(btn_bal)
+
+        btn_aggr = QPushButton("Aggressive Gaming")
+        btn_aggr.setProperty("class", "cyber-btn-secondary")
+        btn_aggr.clicked.connect(lambda: self.curve_editor.set_curve(PRESET_AGGRESSIVE))
+        toolbar.addWidget(btn_aggr)
+
+        toolbar.addStretch()
+
+        self.apply_curve_btn = QPushButton("APPLY CURVE")
+        self.apply_curve_btn.setProperty("class", "cyber-btn-primary")
+        self.apply_curve_btn.clicked.connect(self._apply_curve)
+        toolbar.addWidget(self.apply_curve_btn)
+
+        ed_layout.addLayout(toolbar)
+        main_layout.addWidget(editor_card)
+        main_layout.addStretch()
+
+    def refresh_state(self):
+        mode = self.client.get_fan_mode()
+        self._update_mode_pills(mode)
+        curve = self.client.get_custom_fan_curve()
+        if curve:
+            self.curve_editor.set_curve(curve)
+
+    def _update_mode_pills(self, mode: str):
+        self._current_mode = mode
+        self.btn_auto.setChecked(mode == "auto")
+        self.btn_max.setChecked(mode == "max")
+        self.btn_custom.setChecked(mode == "custom")
+
+        # Styling updates
+        for btn, active in [
+            (self.btn_auto, mode == "auto"),
+            (self.btn_max, mode == "max"),
+            (self.btn_custom, mode == "custom"),
+        ]:
+            if active:
+                btn.setStyleSheet("background-color: #00E5FF; color: #0A0B10; font-weight: 800;")
+            else:
+                btn.setStyleSheet("")
+
+    def _set_mode(self, mode: str):
+        self.client.set_fan_mode(mode)
+        self._update_mode_pills(mode)
+
+    def _apply_curve(self):
+        pts = self.curve_editor.get_curve()
+        self.client.set_custom_fan_curve(pts)
+        if self._current_mode != "custom":
+            self._set_mode("custom")
+        QMessageBox.information(self, "Curve Applied", f"Custom fan curve with {len(pts)} nodes sent to root daemon.")
+
+    def update_telemetry(self, m: dict):
+        temp = m.get("cpu_temp", 45.0)
+        self.curve_editor.set_current_temperature(temp)

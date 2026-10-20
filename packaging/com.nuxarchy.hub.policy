@@ -3,18 +3,19 @@
  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
 <policyconfig>
-  <vendor>Nuxarchy Linux</vendor>
-  <vendor_url>https://github.com/nuxarchy</vendor_url>
-  <icon_name>nuxarchy</icon_name>
+  <vendor>Nuxarchy</vendor>
+  <vendor_url>https://github.com/SRYashas/NUXARCHY</vendor_url>
+  <icon_name>nuxarchy-hub</icon_name>
 
-  <action id="com.nuxarchy.hub.hardware-control">
-    <description>Apply Hardware Configuration (Fan, Power, Thermal, Lighting)</description>
-    <message>Authentication is required for NUXARCHY to write hardware registers and EC commands.</message>
+  <action id="org.nuxarchy.Daemon.hardware-control">
+    <description>Nuxarchy Hardware &amp; Thermal Control</description>
+    <message>Authentication is required to modify hardware power limits, fan curves, or GPU architecture.</message>
     <defaults>
       <allow_any>auth_admin</allow_any>
       <allow_inactive>auth_admin</allow_inactive>
       <allow_active>yes</allow_active>
     </defaults>
-    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/nuxarchy/nuxarchy-hardware-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/python3</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
   </action>
 </policyconfig>

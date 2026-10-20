@@ -1,232 +1,228 @@
 """
-NUXARCHY Light Studio: 4-Zone RGB Keyboard Control View
-Features realistic keyboard zone layouts, glowing animated keycaps,
-palette swatches, and hardware WMI lighting control.
+NUXARCHY OMEN Light Studio View
+Top: ZoneKeyboardWidget showing live zone colors + [ SELECT ALL ZONES ] button.
+Bottom-left: Effect selector (Static, Breathing, Color Cycle, Wave, Off), Brightness slider, and Speed slider.
+Bottom-right: Quick Neon Preset Swatches (OMEN Red, Cyber Cyan, Matrix Green, Synthwave Purple, Pure White)
++ QColorDialog custom hex picker and [ APPLY LIGHTING ] button.
 """
 
-import time
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton,
-    QSlider, QComboBox, QColorDialog, QGridLayout, QMessageBox
+from typing import List
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QFrame,
+    QComboBox,
+    QSlider,
+    QPushButton,
+    QColorDialog,
+    QMessageBox,
 )
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QColor
+from PyQt6.QtGui import QColor
+from nuxarchy.ui.widgets.zone_keyboard import ZoneKeyboardWidget
+from nuxarchy.services.daemon_client import DaemonClient
 
-from nuxarchy.backend.capability import HardwareCapabilities
-from nuxarchy.backend.adapters.lighting_adapter import LightingAdapter, LightingProfile, RgbColor
+SWATCHES = [
+    ("OMEN Red", "#FF0552"),
+    ("Cyber Cyan", "#00E5FF"),
+    ("Matrix Green", "#00FF66"),
+    ("Synthwave Purple", "#9D00FF"),
+    ("Pure White", "#FFFFFF"),
+]
 
 
 class LightingView(QWidget):
-    def __init__(self, caps: HardwareCapabilities, parent=None):
-        super().__init__(parent)
-        self.caps = caps
-        self.adapter = LightingAdapter()
-        self.profile = LightingProfile()
-        self.start_time = time.time()
+    """OMEN Light Studio RGB keyboard zone manager and animation effects."""
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(18)
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
+        self.client = DaemonClient.instance()
+        self._zone_colors: List[str] = ["#00E5FF", "#00E5FF", "#FF0552", "#FF0552"]
+        self._setup_ui()
+
+    def _setup_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(24, 20, 24, 20)
+        main_layout.setSpacing(18)
 
         # Header
-        header = QHBoxLayout()
-        header_text = QVBoxLayout()
-        title = QLabel("NUXARCHY LIGHT STUDIO")
-        title.setStyleSheet("color: #FFFFFF; font-size: 22px; font-weight: 800; letter-spacing: 1px;")
-        header_text.addWidget(title)
+        header = QVBoxLayout()
+        header.setSpacing(4)
+        title = QLabel("OMEN LIGHT STUDIO")
+        title.setProperty("class", "view-title")
+        subtitle = QLabel("Direct HP WMI sysfs multicolor LEDs and OpenRGB SDK raw TCP synchronization")
+        subtitle.setProperty("class", "view-subtitle")
+        header.addWidget(title)
+        header.addWidget(subtitle)
+        main_layout.addLayout(header)
 
-        sub = QLabel("4-Zone RGB Keyboard Lighting & Dynamic Effect Studio")
-        sub.setStyleSheet("color: #9CA3AF; font-size: 12px;")
-        header_text.addWidget(sub)
-        header.addLayout(header_text)
-        header.addStretch()
-        layout.addLayout(header)
+        # ── Top Section: ZoneKeyboardWidget + Select All ─────────────────────
+        kb_card = QFrame()
+        kb_card.setProperty("class", "cyber-card")
+        kb_layout = QVBoxLayout(kb_card)
+        kb_layout.setContentsMargins(18, 14, 18, 14)
+        kb_layout.setSpacing(10)
 
-        # Keyboard Chassis Mockup
-        kb_chassis = QFrame()
-        kb_chassis.setStyleSheet("""
-            QFrame {
-                background-color: #0E1015;
-                border: 2px solid #202430;
-                border-radius: 14px;
-                padding: 16px;
-            }
-        """)
-        chassis_layout = QVBoxLayout(kb_chassis)
-        chassis_layout.setSpacing(12)
+        kb_head = QHBoxLayout()
+        kb_title = QLabel("4-ZONE KEYBOARD CANVAS")
+        kb_title.setProperty("class", "card-heading")
+        kb_head.addWidget(kb_title)
+        kb_head.addStretch()
 
-        kb_label = QLabel("KEYBOARD MATRIX (4 INDEPENDENT RGB ZONES)")
-        kb_label.setStyleSheet("color: #6B7280; font-size: 10px; font-weight: 800; letter-spacing: 1.5px;")
-        chassis_layout.addWidget(kb_label)
+        self.btn_select_all = QPushButton("SELECT ALL ZONES")
+        self.btn_select_all.setProperty("class", "cyber-btn-secondary")
+        self.btn_select_all.clicked.connect(self._select_all_zones)
+        kb_head.addWidget(self.btn_select_all)
+        kb_layout.addLayout(kb_head)
 
-        # 4 Interactive Zones
-        zones_row = QHBoxLayout()
-        zones_row.setSpacing(10)
+        self.keyboard_widget = ZoneKeyboardWidget()
+        self.keyboard_widget.set_all_colors(self._zone_colors)
+        kb_layout.addWidget(self.keyboard_widget)
 
-        self.zone_frames = []
-        zone_specs = [
-            ("ZONE 1", "Left Cluster\n[Esc, Tab, Q, A, Shift]"),
-            ("ZONE 2", "WASD Cluster\n[W, A, S, D, Space]"),
-            ("ZONE 3", "Center-Right\n[YUIOP, HJKL, Enter]"),
-            ("ZONE 4", "Numpad & Arrows\n[Num, Arrows, Del]")
-        ]
+        main_layout.addWidget(kb_card)
 
-        for i, (z_title, z_desc) in enumerate(zone_specs):
-            z_card = QFrame()
-            z_card.setMinimumHeight(140)
-            z_card.setCursor(Qt.PointingHandCursor)
-            z_layout = QVBoxLayout(z_card)
-            z_layout.setAlignment(Qt.AlignCenter)
+        # ── Bottom Split Controls ────────────────────────────────────────────
+        bottom_layout = QHBoxLayout()
+        bottom_layout.setSpacing(18)
 
-            lbl_t = QLabel(z_title)
-            lbl_t.setAlignment(Qt.AlignCenter)
-            lbl_t.setStyleSheet("color: #FFFFFF; font-weight: 800; font-size: 13px;")
-            z_layout.addWidget(lbl_t)
+        # Bottom-Left: Effects & Sliders
+        left_card = QFrame()
+        left_card.setProperty("class", "cyber-card")
+        l_layout = QVBoxLayout(left_card)
+        l_layout.setContentsMargins(18, 16, 18, 16)
+        l_layout.setSpacing(12)
 
-            lbl_d = QLabel(z_desc)
-            lbl_d.setAlignment(Qt.AlignCenter)
-            lbl_d.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 11px;")
-            z_layout.addWidget(lbl_d)
+        l_title = QLabel("ANIMATION & INTENSITY")
+        l_title.setProperty("class", "card-heading")
+        l_layout.addWidget(l_title)
 
-            lbl_hex = QLabel(self.profile.zone_colors[i].to_hex())
-            lbl_hex.setAlignment(Qt.AlignCenter)
-            lbl_hex.setStyleSheet("color: #FFFFFF; font-family: monospace; font-weight: 700; font-size: 12px; margin-top: 6px;")
-            z_layout.addWidget(lbl_hex)
+        # Effect Selector
+        eff_box = QHBoxLayout()
+        eff_lbl = QLabel("LIGHTING EFFECT:")
+        eff_lbl.setStyleSheet("color: #FFFFFF; font-weight: 600;")
+        self.effect_combo = QComboBox()
+        self.effect_combo.addItems(["Static", "Breathing", "Color Cycle", "Wave", "Off"])
+        self.effect_combo.setStyleSheet(
+            "QComboBox { background-color: #1C1F2E; border: 1px solid #2B3045; "
+            "color: #FFFFFF; padding: 6px 12px; border-radius: 4px; font-weight: 700; }"
+        )
+        eff_box.addWidget(eff_lbl)
+        eff_box.addWidget(self.effect_combo)
+        l_layout.addLayout(eff_box)
 
-            z_card.zone_idx = i
-            z_card.lbl_hex = lbl_hex
-            z_card.mousePressEvent = lambda e, idx=i: self._pick_color(idx)
-            self.zone_frames.append(z_card)
-            zones_row.addWidget(z_card)
+        # Brightness Slider (0-100%)
+        b_box = QHBoxLayout()
+        b_lbl = QLabel("BRIGHTNESS:")
+        b_lbl.setStyleSheet("color: #FFFFFF; font-weight: 600;")
+        self.bright_slider = QSlider(Qt.Orientation.Horizontal)
+        self.bright_slider.setRange(0, 100)
+        self.bright_slider.setValue(100)
+        self.bright_val_lbl = QLabel("100%")
+        self.bright_val_lbl.setFixedWidth(45)
+        self.bright_val_lbl.setStyleSheet("color: #00E5FF; font-weight: 700;")
+        self.bright_slider.valueChanged.connect(lambda v: self.bright_val_lbl.setText(f"{v}%"))
 
-        chassis_layout.addLayout(zones_row)
-        layout.addWidget(kb_chassis)
+        b_box.addWidget(b_lbl)
+        b_box.addWidget(self.bright_slider)
+        b_box.addWidget(self.bright_val_lbl)
+        l_layout.addLayout(b_box)
 
-        # Effect Controls Card
-        ctrl_card = QFrame()
-        ctrl_card.setProperty("class", "cardFrame")
-        c_layout = QVBoxLayout(ctrl_card)
-        c_layout.setSpacing(16)
+        # Speed Slider (1-100%)
+        s_box = QHBoxLayout()
+        s_lbl = QLabel("ANIMATION SPEED:")
+        s_lbl.setStyleSheet("color: #FFFFFF; font-weight: 600;")
+        self.speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self.speed_slider.setRange(1, 100)
+        self.speed_slider.setValue(50)
+        self.speed_val_lbl = QLabel("50%")
+        self.speed_val_lbl.setFixedWidth(45)
+        self.speed_val_lbl.setStyleSheet("color: #00E5FF; font-weight: 700;")
+        self.speed_slider.valueChanged.connect(lambda v: self.speed_val_lbl.setText(f"{v}%"))
 
-        # Row 1: Mode & Direction
-        row1 = QHBoxLayout()
-        row1.addWidget(QLabel("Effect Animation:"))
-        self.combo_mode = QComboBox()
-        self.combo_mode.addItems(["Wave", "ColorCycle", "Breathing", "Static", "Off"])
-        self.combo_mode.currentTextChanged.connect(self._on_mode_changed)
-        row1.addWidget(self.combo_mode)
+        s_box.addWidget(s_lbl)
+        s_box.addWidget(self.speed_slider)
+        s_box.addWidget(self.speed_val_lbl)
+        l_layout.addLayout(s_box)
 
-        row1.addSpacing(20)
-        row1.addWidget(QLabel("Wave Direction:"))
-        self.combo_dir = QComboBox()
-        self.combo_dir.addItems(["Right", "Left"])
-        self.combo_dir.currentTextChanged.connect(lambda t: setattr(self.profile, "direction", t))
-        row1.addWidget(self.combo_dir)
+        bottom_layout.addWidget(left_card)
 
-        row1.addStretch()
-        c_layout.addLayout(row1)
+        # Bottom-Right: Swatches & Color Picker
+        right_card = QFrame()
+        right_card.setProperty("class", "cyber-card")
+        r_layout = QVBoxLayout(right_card)
+        r_layout.setContentsMargins(18, 16, 18, 16)
+        r_layout.setSpacing(12)
 
-        # Row 2: Sliders
-        row2 = QHBoxLayout()
-        row2.addWidget(QLabel("Brightness:"))
-        self.slider_bright = QSlider(Qt.Horizontal)
-        self.slider_bright.setRange(0, 100)
-        self.slider_bright.setValue(100)
-        self.slider_bright.valueChanged.connect(self._on_brightness_changed)
-        row2.addWidget(self.slider_bright)
-        self.lbl_bright_val = QLabel("100%")
-        self.lbl_bright_val.setStyleSheet("color: #00FFD1; font-weight: 700; width: 40px;")
-        row2.addWidget(self.lbl_bright_val)
+        r_title = QLabel("NEON PRESET SWATCHES")
+        r_title.setProperty("class", "card-heading")
+        r_layout.addWidget(r_title)
 
-        row2.addSpacing(20)
-        row2.addWidget(QLabel("Animation Speed:"))
-        self.slider_speed = QSlider(Qt.Horizontal)
-        self.slider_speed.setRange(1, 100)
-        self.slider_speed.setValue(50)
-        self.slider_speed.valueChanged.connect(lambda v: setattr(self.profile, "speed", v))
-        row2.addWidget(self.slider_speed)
+        # Swatches Row
+        swatch_layout = QHBoxLayout()
+        swatch_layout.setSpacing(10)
+        for name, hex_code in SWATCHES:
+            btn = QPushButton()
+            btn.setFixedSize(36, 36)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet(
+                f"background-color: {hex_code}; border-radius: 6px; border: 2px solid #222533; "
+                f"QPushButton:hover {{ border: 2px solid #FFFFFF; }}"
+            )
+            btn.setToolTip(name)
+            btn.clicked.connect(lambda checked, col=hex_code: self._apply_color_to_selected(col))
+            swatch_layout.addWidget(btn)
+        swatch_layout.addStretch()
+        r_layout.addLayout(swatch_layout)
 
-        c_layout.addLayout(row2)
+        # Custom Hex & Apply Button
+        act_box = QHBoxLayout()
+        self.btn_picker = QPushButton("CUSTOM COLOR PICKER")
+        self.btn_picker.setProperty("class", "cyber-btn-secondary")
+        self.btn_picker.clicked.connect(self._open_color_picker)
+        act_box.addWidget(self.btn_picker)
 
-        # Row 3: Presets & Apply
-        row3 = QHBoxLayout()
-        btn_apply = QPushButton("APPLY TO HARDWARE")
-        btn_apply.setProperty("class", "primaryButton")
-        btn_apply.clicked.connect(self._apply_lighting)
-        row3.addWidget(btn_apply)
+        act_box.addStretch()
 
-        btn_cyber_red = QPushButton("Cyber Red Theme")
-        btn_cyber_red.setProperty("class", "secondaryButton")
-        btn_cyber_red.clicked.connect(lambda: self._set_preset([RgbColor(255, 42, 84)] * 4))
-        row3.addWidget(btn_cyber_red)
+        self.btn_apply = QPushButton("APPLY LIGHTING")
+        self.btn_apply.setProperty("class", "cyber-btn-primary")
+        self.btn_apply.clicked.connect(self._apply_lighting)
+        act_box.addWidget(self.btn_apply)
+        r_layout.addLayout(act_box)
 
-        btn_cyber = QPushButton("Cyberpunk Turquoise")
-        btn_cyber.setProperty("class", "secondaryButton")
-        btn_cyber.clicked.connect(lambda: self._set_preset([RgbColor(0, 255, 209), RgbColor(255, 42, 84), RgbColor(157, 78, 221), RgbColor(0, 255, 209)]))
-        row3.addWidget(btn_cyber)
+        bottom_layout.addWidget(right_card)
+        main_layout.addLayout(bottom_layout)
+        main_layout.addStretch()
 
-        btn_ice = QPushButton("Glacier Blue")
-        btn_ice.setProperty("class", "secondaryButton")
-        btn_ice.clicked.connect(lambda: self._set_preset([RgbColor(0, 180, 216), RgbColor(144, 224, 239), RgbColor(0, 119, 182), RgbColor(0, 180, 216)]))
-        row3.addWidget(btn_ice)
+    def _select_all_zones(self):
+        self.keyboard_widget.set_selected_zone(-1)
 
-        row3.addStretch()
-        c_layout.addLayout(row3)
+    def _apply_color_to_selected(self, hex_color: str):
+        sel = self.keyboard_widget.get_selected_zone()
+        if sel == -1:
+            self._zone_colors = [hex_color] * 4
+        elif 0 <= sel < 4:
+            self._zone_colors[sel] = hex_color
+        self.keyboard_widget.set_zone_color(sel, hex_color)
 
-        layout.addWidget(ctrl_card)
-        layout.addStretch()
-
-        # 30 FPS Animation Timer
-        self.timer = QTimer(self)
-        self.timer.setInterval(33)
-        self.timer.timeout.connect(self._animate_preview)
-        self.timer.start()
-
-        self._render_zones(self.profile.zone_colors)
-
-    def _pick_color(self, idx: int):
-        curr = self.profile.zone_colors[idx]
-        color = QColorDialog.getColor(QColor(curr.r, curr.g, curr.b), self, f"Select Color for Zone {idx + 1}")
-        if color.isValid():
-            self.profile.zone_colors[idx] = RgbColor(color.red(), color.green(), color.blue())
-            self.profile.mode = "Static"
-            self.combo_mode.setCurrentText("Static")
-            self._render_zones(self.profile.zone_colors)
-
-    def _set_preset(self, colors: list):
-        self.profile.zone_colors = colors
-        self._render_zones(colors)
-        self._apply_lighting()
-
-    def _on_mode_changed(self, mode: str):
-        self.profile.mode = mode
-        self.start_time = time.time()
-
-    def _on_brightness_changed(self, val: int):
-        self.profile.brightness = val
-        self.lbl_bright_val.setText(f"{val}%")
-
-    def _animate_preview(self):
-        elapsed = time.time() - self.start_time
-        frame = self.adapter.calculate_animated_frame(self.profile, elapsed)
-        self._render_zones(frame)
-
-    def _render_zones(self, colors: list):
-        for i, card in enumerate(self.zone_frames):
-            c = colors[i]
-            hex_c = c.to_hex()
-            card.setStyleSheet(f"""
-                QFrame {{
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {hex_c}, stop:1 rgba(15, 17, 23, 0.85));
-                    border: 2px solid rgba(255, 255, 255, 0.35);
-                    border-radius: 10px;
-                }}
-            """)
-            card.lbl_hex.setText(hex_c)
+    def _open_color_picker(self):
+        col = QColorDialog.getColor(QColor(self._zone_colors[0]), self, "Pick OMEN Zone Color")
+        if col.isValid():
+            hex_code = col.name().upper()
+            self._apply_color_to_selected(hex_code)
 
     def _apply_lighting(self):
-        success, msg = self.adapter.apply_profile(self.profile)
-        if success:
-            QMessageBox.information(self, "NUXARCHY Light Studio", msg)
+        mode = self.effect_combo.currentText().lower().replace(" ", "_")
+        brightness = self.bright_slider.value()
+        speed = self.speed_slider.value()
+
+        ok = self.client.set_lighting(mode, self._zone_colors, brightness, speed)
+        if ok:
+            QMessageBox.information(
+                self,
+                "Lighting Applied",
+                f"Applied {mode.upper()} effect at {brightness}% brightness across 4 keyboard zones.",
+            )
         else:
-            QMessageBox.warning(self, "Lighting Warning", msg)
+            QMessageBox.warning(self, "Lighting Warning", "Could not apply lighting via daemon.")

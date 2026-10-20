@@ -1,24 +1,27 @@
 [Unit]
-Description=NUXARCHY Hardware & System Control Daemon
+Description=NUXARCHY Privileged Root Hardware & Thermal Daemon
 Documentation=https://github.com/SRYashas/NUXARCHY
-After=network.target sys-devices-platform-hp\x2dwmi.device
+After=network.target dbus.service lm_sensors.service
+Wants=dbus.service
 
 [Service]
 Type=simple
-User=root
-Group=root
-ExecStart=/usr/bin/nuxarchy-daemon
+BusName=org.nuxarchy.Daemon
+ExecStart=/usr/bin/python3 -m nuxarchy.services.daemon
 Restart=always
 RestartSec=3s
+User=root
+Group=root
 
-# Runtime socket directory /run/nuxarchy
-RuntimeDirectory=nuxarchy
-RuntimeDirectoryMode=0755
+# Hardware & security capabilities
+AmbientCapabilities=CAP_SYS_RAWIO CAP_NET_ADMIN CAP_SYS_NICE CAP_DAC_OVERRIDE
+CapabilityBoundingSet=CAP_SYS_RAWIO CAP_NET_ADMIN CAP_SYS_NICE CAP_DAC_OVERRIDE
 
-# Security sandbox settings appropriate for root hardware controllers
-ProtectHome=read-only
+# Security & sandboxing flags
 ProtectSystem=strict
-ReadWritePaths=/sys /proc /dev /run/nuxarchy /tmp
+ReadWritePaths=/sys /proc /dev /run /etc
+ProtectHome=true
+NoNewPrivileges=false
 
 [Install]
 WantedBy=multi-user.target

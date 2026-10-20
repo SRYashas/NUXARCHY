@@ -1,234 +1,286 @@
 """
-NUXARCHY Root Hardware Daemon
-A lightweight, high-performance background service running as root via systemd.
-Listens on a local Unix domain socket (/run/nuxarchy/nuxarchy.sock).
+NUXARCHY Privileged Root Systemd D-Bus Service
+Exports org.nuxarchy.Daemon at /org/nuxarchy/Daemon on the System Bus (sdbus).
 
-Provides:
-- Unprivileged GUI apps continuous access to live system hardware metrics.
-- Instant, passwordless execution of privileged hardware writes (ACPI profiles, fan boost, RGB).
-- Zero password prompts after initial system installation.
+Requires root privileges (os.geteuid() == 0).
+Integrates:
+- TelemetryAggregator
+- FanController
+- UndervoltAdapter
+- PlatformProfileAdapter
+- GpuSwitchAdapter
+- LightingAdapter
+- BatteryAdapter
+- NetworkQoSAdapter
+- GameOptimizerAdapter
+- HotkeyListener
 """
 
 import os
 import sys
-import json
 import time
 import signal
-import socket
-import threading
-from dataclasses import asdict
-from typing import Dict, Any, Optional
+import logging
+from typing import Dict, List, Tuple, Any
 
-from nuxarchy.backend.capability import CapabilityDetector, HardwareCapabilities
-from nuxarchy.backend.telemetry.system_monitor import SystemSampler, SystemSnapshot
-from nuxarchy.backend.adapters.platform_profile import PlatformProfileAdapter
-from nuxarchy.backend.adapters.fan_controller import FanController
-from nuxarchy.backend.adapters.lighting_adapter import LightingAdapter
+# Graceful sdbus import with mock shim for non-Linux / test environments
+try:
+    import sdbus
+    HAS_SDBUS = True
+except ImportError:
+    HAS_SDBUS = False
 
-DEFAULT_SOCKET_DIR = "/run/nuxarchy"
-DEFAULT_SOCKET_PATH = "/run/nuxarchy/nuxarchy.sock"
-FALLBACK_SOCKET_PATH = "/tmp/nuxarchy.sock"
-
-
-def get_socket_path() -> str:
-    if os.path.exists(DEFAULT_SOCKET_DIR) or os.access("/run", os.W_OK):
-        return DEFAULT_SOCKET_PATH
-    return FALLBACK_SOCKET_PATH
-
-
-class NuxarchyDaemon:
-    def __init__(self, socket_path: Optional[str] = None, port: int = 19854):
-        # Set environment flag to prevent adapters inside daemon from recursing into DaemonClient
-        os.environ["NUXARCHY_DAEMON"] = "1"
-
-        self.socket_path = socket_path or get_socket_path()
-        self.port = port
-        self.running = False
-        self.server_socket: Optional[socket.socket] = None
-
-        # Hardware controllers with root access
-        self.detector = CapabilityDetector(simulation_mode=False)
-        self.caps = self.detector.detect()
-        self.sampler = SystemSampler(self.caps)
-        self.profile_adapter = PlatformProfileAdapter(direct_mode=True)
-        self.fan_controller = FanController(direct_mode=True)
-        self.lighting_adapter = LightingAdapter(direct_mode=True)
-
-        # Cache latest snapshot
-        self.cached_snapshot: Optional[Dict[str, Any]] = None
-        self._cache_lock = threading.Lock()
-
-    def start(self):
-        self.running = True
-
-        # Ensure runtime socket directory exists
-        sock_dir = os.path.dirname(self.socket_path)
-        if sock_dir and not os.path.exists(sock_dir):
-            try:
-                os.makedirs(sock_dir, mode=0o755, exist_ok=True)
-            except Exception:
+    class _MockDbus:
+        class DbusInterfaceCommon:
+            def __init_subclass__(cls, **kwargs):
+                pass
+            def __init__(self, *args, **kwargs):
+                pass
+            def export_to_dbus(self, path: str):
+                pass
+            def connect_to_dbus(self, name: str, path: str):
                 pass
 
-        # Remove stale socket
-        if os.path.exists(self.socket_path):
-            try:
-                os.remove(self.socket_path)
-            except Exception:
-                pass
+        @staticmethod
+        def dbus_method(input_signature: str = "", result_signature: str = ""):
+            def decorator(fn):
+                fn._dbus_in = input_signature
+                fn._dbus_out = result_signature
+                return fn
+            return decorator
 
-        # Create Unix domain socket (or TCP fallback on Windows)
-        if hasattr(socket, "AF_UNIX") and not self.socket_path.startswith("tcp://"):
-            self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.server_socket.bind(self.socket_path)
-            try:
-                os.chmod(self.socket_path, 0o666)
-            except Exception:
-                pass
-        else:
-            # Fallback to local TCP on Windows/testing
-            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.server_socket.bind(("127.0.0.1", self.port))
+        @staticmethod
+        def dbus_signal(signature: str = ""):
+            class _Signal:
+                def __init__(self, sig):
+                    self.sig = sig
+                def emit(self, *args):
+                    pass
+            return _Signal(signature)
 
-        self.server_socket.listen(10)
-        self.server_socket.settimeout(1.0)
+        @staticmethod
+        def sd_bus_open_system():
+            return None
 
-        # Perform initial synchronous sample so cache is instantly available to clients
-        try:
-            initial_snap = self.sampler.sample()
-            with self._cache_lock:
-                self.cached_snapshot = asdict(initial_snap)
-        except Exception:
+        @staticmethod
+        def set_default_bus(bus):
             pass
 
-        # Start background sampler thread
-        sampler_thread = threading.Thread(target=self._telemetry_worker, daemon=True)
-        sampler_thread.start()
+        @staticmethod
+        def request_name(name: str):
+            pass
 
-        sys.stdout.write(f"[NUXARCHY-DAEMON] Listening on {self.socket_path}\n")
-        sys.stdout.flush()
+    sdbus = _MockDbus()
 
-        while self.running:
-            try:
-                conn, _ = self.server_socket.accept()
-                threading.Thread(target=self._handle_client, args=(conn,), daemon=True).start()
-            except socket.timeout:
-                continue
-            except Exception:
-                break
+from nuxarchy.backend.telemetry import TelemetryAggregator
+from nuxarchy.backend.adapters.fan_controller import FanController
+from nuxarchy.backend.adapters.undervolt import UndervoltAdapter
+from nuxarchy.backend.adapters.platform_profile import PlatformProfileAdapter
+from nuxarchy.backend.adapters.gpu_switch import GpuSwitchAdapter
+from nuxarchy.backend.adapters.openrgb_client import LightingAdapter
+from nuxarchy.backend.adapters.battery import BatteryAdapter
+from nuxarchy.backend.adapters.network_qos import NetworkQoSAdapter
+from nuxarchy.backend.adapters.game_optimizer import GameOptimizerAdapter
+from nuxarchy.backend.adapters.hotkey_listener import HotkeyListener
 
-    def stop(self):
-        self.running = False
-        if self.server_socket:
-            try:
-                self.server_socket.close()
-            except Exception:
-                pass
-        if os.path.exists(self.socket_path) and hasattr(socket, "AF_UNIX"):
-            try:
-                os.remove(self.socket_path)
-            except Exception:
-                pass
-        sys.stdout.write("[NUXARCHY-DAEMON] Daemon stopped cleanly.\n")
-        sys.stdout.flush()
+logger = logging.getLogger("nuxarchy.daemon")
 
-    def _telemetry_worker(self):
-        """Continuously samples hardware metrics at 1000ms intervals."""
-        while self.running:
-            try:
-                snap = self.sampler.sample()
-                with self._cache_lock:
-                    self.cached_snapshot = asdict(snap)
-            except Exception:
-                pass
-            time.sleep(1.0)
+DBUS_SERVICE_NAME = "org.nuxarchy.Daemon"
+DBUS_OBJECT_PATH = "/org/nuxarchy/Daemon"
 
-    def _handle_client(self, conn: socket.socket):
-        with conn:
-            conn.settimeout(5.0)
-            buffer = ""
-            while self.running:
-                try:
-                    data = conn.recv(4096)
-                    if not data:
-                        break
-                    buffer += data.decode("utf-8", errors="ignore")
-                    while "\n" in buffer:
-                        line, buffer = buffer.split("\n", 1)
-                        line = line.strip()
-                        if not line:
-                            continue
-                        response = self._process_request(line)
-                        conn.sendall((json.dumps(response) + "\n").encode("utf-8"))
-                except (socket.timeout, ConnectionResetError, BrokenPipeError, ConnectionAbortedError, OSError):
-                    break
-                except Exception:
-                    break
 
-    def _process_request(self, line: str) -> Dict[str, Any]:
+class NuxarchyInterface(
+    sdbus.DbusInterfaceCommon,
+    interface_name=DBUS_SERVICE_NAME,
+):
+    """System Bus D-Bus Interface for NUXARCHY Hardware Daemon."""
+
+    # D-Bus Signals
+    omen_hotkey_pressed = sdbus.dbus_signal()
+    emergency_thermal_trip = sdbus.dbus_signal(signature="d")
+
+    def __init__(self):
+        super().__init__()
+        self.telemetry = TelemetryAggregator()
+        self.platform_profile = PlatformProfileAdapter(direct_mode=True)
+        self.fan_controller = FanController(
+            direct_mode=True,
+            on_emergency_trip=self._on_emergency_thermal_trip,
+        )
+        self.undervolt = UndervoltAdapter(direct_mode=True)
+        self.gpu_switch = GpuSwitchAdapter(direct_mode=True)
+        self.lighting = LightingAdapter(direct_mode=True)
+        self.battery = BatteryAdapter(direct_mode=True)
+        self.network_qos = NetworkQoSAdapter(direct_mode=True)
+        self.game_optimizer = GameOptimizerAdapter(direct_mode=True)
+        self.hotkey_listener = HotkeyListener(on_hotkey=self._on_hotkey)
+
+    def _on_emergency_thermal_trip(self, temp: float):
+        logger.critical("EMERGENCY THERMAL TRIP! Emitting D-Bus signal at %.1f°C", temp)
         try:
-            req = json.loads(line)
-        except Exception:
-            return {"status": "error", "message": "Invalid JSON"}
+            self.emergency_thermal_trip.emit(float(temp))
+        except Exception as e:
+            logger.error("Failed to emit emergency signal: %s", e)
 
-        action = req.get("action", "")
+    def _on_hotkey(self):
+        logger.info("OMEN Key pressed! Emitting D-Bus signal omen_hotkey_pressed")
+        try:
+            self.omen_hotkey_pressed.emit()
+        except Exception as e:
+            logger.error("Failed to emit hotkey signal: %s", e)
 
-        if action == "ping":
-            return {"status": "ok", "version": "1.0.0", "daemon": True}
+    # ── D-Bus Methods ────────────────────────────────────────────────────────
 
-        elif action == "get_capabilities":
-            return {"status": "ok", "capabilities": asdict(self.caps)}
+    @sdbus.dbus_method(result_signature="a{sd}")
+    def get_telemetry_metrics(self) -> Dict[str, float]:
+        metrics = self.telemetry.get_metrics()
+        # Merge battery and fan rpm info
+        bat = self.battery.get_battery_metrics()
+        metrics["battery_pct"] = bat.get("battery_pct", 100.0)
+        metrics["battery_health_pct"] = bat.get("battery_health_pct", 98.0)
+        metrics["power_draw_watts"] = bat.get("power_draw_watts", 20.0)
+        metrics["current_pwm"] = float(self.fan_controller.get_current_pwm())
+        return metrics
 
-        elif action == "get_snapshot":
-            with self._cache_lock:
-                if self.cached_snapshot:
-                    return {"status": "ok", "snapshot": self.cached_snapshot}
-            # Fallback to direct synchronous sample if cache empty
-            snap = self.sampler.sample()
-            return {"status": "ok", "snapshot": asdict(snap)}
+    @sdbus.dbus_method(result_signature="s")
+    def get_platform_profile(self) -> str:
+        return self.platform_profile.get_current_profile()
 
-        elif action == "set_platform_profile":
-            profile = req.get("profile", "")
-            success, msg = self.profile_adapter.set_profile(profile)
-            return {"status": "ok" if success else "error", "message": msg}
+    @sdbus.dbus_method(input_signature="s", result_signature="b")
+    def set_platform_profile(self, profile: str) -> bool:
+        return self.platform_profile.set_profile(profile)
 
-        elif action == "set_fan_mode":
-            mode = req.get("mode", "")
-            success, msg = self.fan_controller.set_cooling_mode(mode)
-            return {"status": "ok" if success else "error", "message": msg}
+    @sdbus.dbus_method(result_signature="as")
+    def get_available_platform_profiles(self) -> List[str]:
+        return self.platform_profile.get_supported_profiles()
 
-        elif action == "set_rgb_zones":
-            hex_str = req.get("hex", "")
-            # Direct kernel write to /sys/devices/platform/hp-wmi/rgb_zones
-            rgb_path = "/sys/devices/platform/hp-wmi/rgb_zones"
-            if os.path.exists(rgb_path):
-                try:
-                    raw_bytes = bytes.fromhex(hex_str)
-                    with open(rgb_path, "wb") as f:
-                        f.write(raw_bytes)
-                    return {"status": "ok", "message": "RGB zones written to hp-wmi."}
-                except Exception as e:
-                    return {"status": "error", "message": str(e)}
-            return {"status": "ok", "message": "Simulated RGB apply."}
+    @sdbus.dbus_method(result_signature="s")
+    def get_fan_mode(self) -> str:
+        return self.fan_controller.get_mode()
 
-        return {"status": "error", "message": f"Unknown action '{action}'"}
+    @sdbus.dbus_method(input_signature="s", result_signature="b")
+    def set_fan_mode(self, mode: str) -> bool:
+        return self.fan_controller.set_mode(mode)
+
+    @sdbus.dbus_method(result_signature="a(dd)")
+    def get_custom_fan_curve(self) -> List[Tuple[float, float]]:
+        return self.fan_controller.get_curve()
+
+    @sdbus.dbus_method(input_signature="a(dd)", result_signature="b")
+    def set_custom_fan_curve(self, points: List[Tuple[float, float]]) -> bool:
+        return self.fan_controller.set_curve(points)
+
+    @sdbus.dbus_method(result_signature="a{ss}")
+    def get_gpu_status(self) -> Dict[str, str]:
+        st = self.gpu_switch.get_status()
+        return {
+            "current_mode": str(st.get("current_mode", "hybrid")),
+            "pending_mode": str(st.get("pending_mode", "hybrid")),
+            "requires_reboot": "true" if st.get("requires_reboot") else "false",
+            "backend": str(st.get("backend", "simulated")),
+        }
+
+    @sdbus.dbus_method(input_signature="s", result_signature="b")
+    def set_gpu_mode(self, mode: str) -> bool:
+        return self.gpu_switch.set_gpu_mode(mode)
+
+    @sdbus.dbus_method(result_signature="a{ss}")
+    def get_undervolt_status(self) -> Dict[str, str]:
+        return self.undervolt.get_status()
+
+    @sdbus.dbus_method(input_signature="ii", result_signature="b")
+    def set_undervolt_offset(self, core_mv: int, cache_mv: int) -> bool:
+        return self.undervolt.set_undervolt_offset(core_mv, cache_mv)
+
+    @sdbus.dbus_method(input_signature="ii", result_signature="b")
+    def set_power_limits(self, pl1_w: int, pl2_w: int) -> bool:
+        return self.undervolt.set_power_limits(pl1_w, pl2_w)
+
+    @sdbus.dbus_method(result_signature="i")
+    def get_battery_limit(self) -> int:
+        return self.battery.get_charge_limit()
+
+    @sdbus.dbus_method(input_signature="i", result_signature="b")
+    def set_battery_limit(self, limit: int) -> bool:
+        return self.battery.set_charge_limit(limit)
+
+    @sdbus.dbus_method(input_signature="sasii", result_signature="b")
+    def set_lighting(self, mode: str, zone_hex_colors: List[str], brightness: int, speed: int) -> bool:
+        return self.lighting.set_lighting(mode, zone_hex_colors, brightness, speed)
+
+    @sdbus.dbus_method(input_signature="bb", result_signature="b")
+    def set_network_boost(self, enabled: bool, dual_force: bool) -> bool:
+        return self.network_qos.set_network_boost(enabled, dual_force)
+
+    @sdbus.dbus_method(result_signature="a{sb}")
+    def get_network_boost_status(self) -> Dict[str, bool]:
+        return self.network_qos.get_status()
+
+    @sdbus.dbus_method(result_signature="a{ss}")
+    def run_game_optimizer(self) -> Dict[str, str]:
+        res = self.game_optimizer.optimize_system()
+        return {
+            "freed_mb": str(res.get("freed_mb", 0)),
+            "governor": str(res.get("governor", "performance")),
+            "boosted_pids": ",".join(res.get("boosted_pids", [])),
+        }
+
+    def start_services(self):
+        self.hotkey_listener.start()
+
+    def teardown(self):
+        logger.info("Executing Nuxarchy Daemon teardown...")
+        self.hotkey_listener.stop()
+        self.fan_controller.teardown()
+        self.network_qos.teardown()
+        self.telemetry.stop()
+        logger.info("Nuxarchy Daemon teardown finished.")
 
 
-def main():
-    daemon = NuxarchyDaemon()
+# Compatibility alias
+NuxarchyDaemon = NuxarchyInterface
+
+
+def run_daemon():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+    # Require root if running on POSIX
+    if hasattr(os, "geteuid") and os.geteuid() != 0:
+        logger.critical("Fatal: Nuxarchy Daemon requires root privileges (UID 0).")
+        sys.exit(1)
+
+    logger.info("Initializing Nuxarchy Daemon on System Bus...")
+    interface = NuxarchyInterface()
 
     def handle_signal(sig, frame):
-        daemon.stop()
+        logger.info("Received signal %d, shutting down cleanly...", sig)
+        interface.teardown()
         sys.exit(0)
 
-    signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
 
+    if HAS_SDBUS:
+        try:
+            bus = sdbus.sd_bus_open_system()
+            sdbus.set_default_bus(bus)
+            sdbus.request_name(DBUS_SERVICE_NAME)
+            interface.export_to_dbus(DBUS_OBJECT_PATH)
+            logger.info("Nuxarchy Daemon successfully registered at %s on System Bus", DBUS_SERVICE_NAME)
+        except Exception as e:
+            logger.error("Failed to acquire System D-Bus: %s", e)
+    else:
+        logger.warning("sdbus C-library not available, operating in stand-alone test mode")
+
+    interface.start_services()
+
+    # Main service loop
     try:
-        daemon.start()
-    except KeyboardInterrupt:
-        daemon.stop()
+        while True:
+            time.sleep(1.0)
+    except (KeyboardInterrupt, SystemExit):
+        handle_signal(signal.SIGTERM, None)
 
 
 if __name__ == "__main__":
-    main()
+    run_daemon()
