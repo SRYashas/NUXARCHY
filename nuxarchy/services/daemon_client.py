@@ -76,6 +76,10 @@ class DaemonClient:
                 set_fan_mode = sdbus.dbus_method(input_signature="s", result_signature="b")
                 get_custom_fan_curve = sdbus.dbus_method(result_signature="a(dd)")
                 set_custom_fan_curve = sdbus.dbus_method(input_signature="a(dd)", result_signature="b")
+                set_manual_fan_speed = sdbus.dbus_method(input_signature="i", result_signature="b")
+                get_manual_fan_speed = sdbus.dbus_method(result_signature="i")
+                set_dynamic_curve_enabled = sdbus.dbus_method(input_signature="b", result_signature="b")
+                is_dynamic_curve_enabled = sdbus.dbus_method(result_signature="b")
                 get_gpu_status = sdbus.dbus_method(result_signature="a{ss}")
                 set_gpu_mode = sdbus.dbus_method(input_signature="s", result_signature="b")
                 get_undervolt_status = sdbus.dbus_method(result_signature="a{ss}")
@@ -208,6 +212,38 @@ class DaemonClient:
             except Exception:
                 pass
         return True
+
+    def set_manual_fan_speed(self, speed_pct: int) -> bool:
+        if self._connected and self._dbus_proxy:
+            try:
+                return self._dbus_proxy.set_manual_fan_speed(speed_pct)
+            except Exception:
+                pass
+        return True
+
+    def get_manual_fan_speed(self) -> int:
+        if self._connected and self._dbus_proxy:
+            try:
+                return self._dbus_proxy.get_manual_fan_speed()
+            except Exception:
+                pass
+        return 50
+
+    def set_dynamic_curve_enabled(self, enabled: bool) -> bool:
+        if self._connected and self._dbus_proxy:
+            try:
+                return self._dbus_proxy.set_dynamic_curve_enabled(enabled)
+            except Exception:
+                pass
+        return True
+
+    def is_dynamic_curve_enabled(self) -> bool:
+        if self._connected and self._dbus_proxy:
+            try:
+                return self._dbus_proxy.is_dynamic_curve_enabled()
+            except Exception:
+                pass
+        return False
 
     def get_gpu_status(self) -> Dict[str, str]:
         if self._connected and self._dbus_proxy:

@@ -57,6 +57,8 @@ class FanController:
         self._last_high_time: float = 0.0
         self._sensor_failure_count: int = 0
         self._emergency_triggered: bool = False
+        self._manual_static_speed_pct: int = 50
+        self._dynamic_curve_enabled: bool = False
 
         # Threading & keep-alive
         self._running: bool = False
@@ -134,10 +136,10 @@ class FanController:
         Switch fan cooling mode:
         - "auto": Stop keep-alive thread. Write "2" to all pwm*_enable paths (firmware EC).
         - "max": Write "1" to pwm*_enable and "255" to pwm*. Keep-alive loop active.
-        - "custom": Write "1" to pwm*_enable. Run keep-alive loop with interpolation.
+        - "custom" / "manual": Write "1" to pwm*_enable. Run keep-alive loop with interpolation or static slider.
         """
         mode = mode.lower()
-        if mode not in ("auto", "max", "custom"):
+        if mode not in ("auto", "max", "custom", "manual"):
             logger.error("Invalid fan mode requested: %s", mode)
             return False
 
@@ -156,25 +158,52 @@ class FanController:
                 self._ensure_loop_started()
                 logger.info("Fan mode set to MAX (100% PWM Turbo lock)")
                 return True
-            elif mode == "custom":
+            elif mode in ("custom", "manual"):
                 self._write_all_pwm_enable("1")
                 self._ensure_loop_started()
-                logger.info("Fan mode set to CUSTOM curve")
+                logger.info("Fan mode set to %s", mode.upper())
                 return True
 
         return False
 
     def get_supported_modes(self) -> List[str]:
-        return ["auto", "max", "custom"]
+        return ["auto", "max", "custom", "manual"]
 
     def get_current_mode(self) -> str:
         return self.get_mode()
 
     def set_cooling_mode(self, mode: str):
-        if mode not in ("auto", "max", "custom"):
+        if mode not in ("auto", "max", "custom", "manual"):
             return False, f"Unsupported cooling mode: {mode}"
         ok = self.set_mode(mode)
         return ok, f"Mode set to {mode}"
+
+    def set_manual_fan_speed(self, pct: int) -> bool:
+        """Set static manual fan speed (clamped 30% to 100%)."""
+        clamped = max(30, min(100, int(pct)))
+        with self._lock:
+            self._manual_static_speed_pct = clamped
+            self._dynamic_curve_enabled = False
+            if self._mode in ("custom", "manual"):
+                pwm_val = max(76, min(255, int(round((clamped / 100.0) * 255))))
+                self._current_pwm = pwm_val
+                self._write_all_pwm(pwm_val)
+        logger.info("Manual fan static speed set to %d%%", clamped)
+        return True
+
+    def get_manual_fan_speed(self) -> int:
+        with self._lock:
+            return self._manual_static_speed_pct
+
+    def set_dynamic_curve_enabled(self, enabled: bool) -> bool:
+        with self._lock:
+            self._dynamic_curve_enabled = bool(enabled)
+        logger.info("Dynamic fan curve enabled: %s", enabled)
+        return True
+
+    def is_dynamic_curve_enabled(self) -> bool:
+        with self._lock:
+            return self._dynamic_curve_enabled
 
     def get_curve(self) -> List[Tuple[float, float]]:
         with self._lock:
@@ -332,27 +361,36 @@ class FanController:
                     self._current_pwm = 255
                     self._write_all_pwm_enable("1")
                     self._write_all_pwm(255)
-                elif mode == "custom":
-                    raw_target_pwm = self._interpolate_pwm(current_temp)
+                elif mode in ("custom", "manual"):
+                    with self._lock:
+                        dynamic = self._dynamic_curve_enabled
+                        static_pct = self._manual_static_speed_pct
 
-                    # Hysteresis Logic
-                    if current_temp >= self._last_target_temp:
-                        # Ramp up immediately
-                        target_pwm = raw_target_pwm
-                        self._last_target_temp = current_temp
-                        self._last_high_time = now
+                    if not dynamic:
+                        # Static Manual Slider Control (30%..100% -> PWM 76..255)
+                        target_pwm = max(76, min(255, int(round((static_pct / 100.0) * 255))))
                     else:
-                        # Downward slew protection:
-                        # Only step down if elapsed time >= 3.0s AND temp dropped >= 3.0°C
-                        elapsed = now - self._last_high_time
-                        temp_drop = self._last_target_temp - current_temp
-                        if elapsed >= 3.0 and temp_drop >= 3.0:
+                        # Dynamic 2D Fan Curve Interpolation
+                        raw_target_pwm = self._interpolate_pwm(current_temp)
+
+                        # Hysteresis Logic
+                        if current_temp >= self._last_target_temp:
+                            # Ramp up immediately
                             target_pwm = raw_target_pwm
                             self._last_target_temp = current_temp
                             self._last_high_time = now
                         else:
-                            # Hold previous PWM
-                            target_pwm = self._current_pwm
+                            # Downward slew protection:
+                            # Only step down if elapsed time >= 3.0s AND temp dropped >= 3.0°C
+                            elapsed = now - self._last_high_time
+                            temp_drop = self._last_target_temp - current_temp
+                            if elapsed >= 3.0 and temp_drop >= 3.0:
+                                target_pwm = raw_target_pwm
+                                self._last_target_temp = current_temp
+                                self._last_high_time = now
+                            else:
+                                # Hold previous PWM
+                                target_pwm = self._current_pwm
 
                     self._current_pwm = target_pwm
                     self._write_all_pwm_enable("1")

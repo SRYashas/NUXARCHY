@@ -1,89 +1,129 @@
 """
 NUXARCHY Interactive Fan Curve Editor Widget
-Interactive 2D coordinate grid with draggable control nodes, monotonic constraints,
-gradient area fill, grid lines, and live real-time temperature tracking line.
+Pixel-perfect HP OMEN replica:
+- 2D Canvas with outer border (1px solid #888888) and dark background (#080808).
+- 8x8 dark grid lines (1px solid #1F1F1F).
+- Y-Axis Labels: "Max" at top, "RPM" in middle, "Min" at bottom (11px, #888888).
+- X-Axis Labels: "50°C" at left corner, "Temperature" in middle, "90°C" at right corner (11px, #888888).
+- 9 equidistant temperature nodes spanning horizontally from 50°C to 90°C:
+  50°C, 55°C, 60°C, 65°C, 70°C, 75°C, 80°C, 85°C, 90°C.
+- Connected by continuous blue polyline (#2563EB, 2.5px), with horizontal lead-in/lead-out lines.
+- Each node drawn as glowing circle (radius 4px) with outer blue halo (radius 7px, #3B82F6).
+- Draggable vertically with monotonic constraints.
 """
 
 from typing import List, Tuple, Optional
 from PyQt6.QtCore import Qt, QPointF, QRectF, pyqtSignal
-from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPainterPath, QLinearGradient
+from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPainterPath
 from PyQt6.QtWidgets import QWidget
 
 
 class FanCurveEditor(QWidget):
-    """Interactive 2D Spline / Piecewise Linear Fan Curve Editor."""
+    """Interactive 2D 9-Node Fan Curve Editor."""
 
     curveChanged = pyqtSignal(list)
 
+    # 9 Equidistant Temperatures
+    TEMP_POINTS = [50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]
+
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
-        self.setMinimumSize(420, 260)
+        self.setFixedSize(330, 240)
         self.setMouseTracking(True)
 
-        # Temperature limits (X: 30°C to 100°C) and Speed limits (Y: 0% to 100%)
-        self.min_temp = 30.0
-        self.max_temp = 100.0
+        self.min_temp = 50.0
+        self.max_temp = 90.0
         self.min_speed = 0.0
         self.max_speed = 100.0
 
-        # Control nodes: list of [temp_c, speed_pct]
+        # Default 9 nodes matching reference screenshot 2:
+        # starts around 25% at 50°C, ramps up monotonically to ~90% at 90°C
         self._nodes: List[List[float]] = [
-            [30.0, 20.0],
-            [45.0, 35.0],
-            [60.0, 50.0],
-            [75.0, 75.0],
-            [85.0, 100.0],
+            [50.0, 25.0],
+            [55.0, 32.0],
+            [60.0, 40.0],
+            [65.0, 48.0],
+            [70.0, 56.0],
+            [75.0, 64.0],
+            [80.0, 72.0],
+            [85.0, 82.0],
+            [90.0, 92.0],
         ]
 
-        # Dragging state
         self._dragged_node_idx: Optional[int] = None
         self._hovered_node_idx: Optional[int] = None
-
-        # Live temperature indicator
-        self._current_temp: float = 45.0
+        self._current_temp: float = 50.0
 
     def set_curve(self, points: List[Tuple[float, float]]):
-        if len(points) >= 2:
-            self._nodes = [[float(p[0]), float(p[1])] for p in points]
-            self._nodes.sort(key=lambda p: p[0])
-            self.update()
+        """Set curve points."""
+        if not points:
+            return
+        self._nodes = [[float(p[0]), float(p[1])] for p in points]
+        self._nodes.sort(key=lambda p: p[0])
+        self.update()
+
+    def _interpolate_speed_at(self, temp: float, points: List[Tuple[float, float]]) -> float:
+        pts = sorted(points, key=lambda p: p[0])
+        if temp <= pts[0][0]:
+            return float(pts[0][1])
+        if temp >= pts[-1][0]:
+            return float(pts[-1][1])
+        for i in range(len(pts) - 1):
+            t1, s1 = pts[i]
+            t2, s2 = pts[i + 1]
+            if t1 <= temp <= t2:
+                if t2 == t1:
+                    return float(s1)
+                frac = (temp - t1) / (t2 - t1)
+                return float(s1 + frac * (s2 - s1))
+        return 50.0
 
     def get_curve(self) -> List[Tuple[float, float]]:
         return [(p[0], p[1]) for p in self._nodes]
+
+    def set_all_nodes_speed(self, speed_pct: float):
+        """Set all nodes to a flat static percentage (used when manual slider drags)."""
+        clamped = max(0.0, min(100.0, float(speed_pct)))
+        for n in self._nodes:
+            n[1] = clamped
+        self.update()
+        self.curveChanged.emit(self.get_curve())
 
     def set_current_temperature(self, temp: float):
         self._current_temp = float(temp)
         self.update()
 
-    # ── Coordinate Transforms ────────────────────────────────────────────────
+    # ── Geometry & Layout ────────────────────────────────────────────────────
 
     def _graph_rect(self) -> QRectF:
-        pad_left = 50.0
-        pad_right = 25.0
-        pad_top = 20.0
-        pad_bottom = 35.0
+        pad_left = 40.0
+        pad_right = 16.0
+        pad_top = 10.0
+        pad_bottom = 28.0
         return QRectF(
             pad_left,
             pad_top,
-            max(50.0, self.width() - pad_left - pad_right),
-            max(50.0, self.height() - pad_top - pad_bottom),
+            self.width() - pad_left - pad_right,
+            self.height() - pad_top - pad_bottom,
         )
 
     def _temp_speed_to_pixel(self, temp: float, speed: float) -> QPointF:
         gr = self._graph_rect()
+        # Horizontal fraction across 50°C..90°C with small margins for lead-in/lead-out
+        # In reference screenshot 2: node 0 (50°C) is slightly offset from left, node 8 (90°C) offset from right
+        inner_margin_x = 10.0
+        plot_w = gr.width() - (2 * inner_margin_x)
         x_pct = (temp - self.min_temp) / (self.max_temp - self.min_temp)
+        px = gr.left() + inner_margin_x + x_pct * plot_w
+
         y_pct = (speed - self.min_speed) / (self.max_speed - self.min_speed)
-        px = gr.left() + x_pct * gr.width()
         py = gr.bottom() - y_pct * gr.height()
         return QPointF(px, py)
 
-    def _pixel_to_temp_speed(self, pos: QPointF) -> Tuple[float, float]:
+    def _pixel_to_speed(self, py: float) -> float:
         gr = self._graph_rect()
-        x_pct = max(0.0, min(1.0, (pos.x() - gr.left()) / gr.width()))
-        y_pct = max(0.0, min(1.0, (gr.bottom() - pos.y()) / gr.height()))
-        temp = self.min_temp + x_pct * (self.max_temp - self.min_temp)
-        speed = self.min_speed + y_pct * (self.max_speed - self.min_speed)
-        return temp, speed
+        y_pct = max(0.0, min(1.0, (gr.bottom() - py) / gr.height()))
+        return self.min_speed + y_pct * (self.max_speed - self.min_speed)
 
     # ── Paint Event ──────────────────────────────────────────────────────────
 
@@ -93,113 +133,107 @@ class FanCurveEditor(QWidget):
 
         gr = self._graph_rect()
 
-        # Canvas Background
-        painter.fillRect(gr, QColor("#12141C"))
-        painter.setPen(QPen(QColor("#222533"), 1))
+        # 1. Outer Canvas Background & Border
+        painter.fillRect(gr, QColor("#080808"))
+        painter.setPen(QPen(QColor("#888888"), 1))
         painter.drawRect(gr)
 
-        # 1. Subtle Dark Grid Lines (#1E2230)
-        grid_pen = QPen(QColor("#1E2230"), 1, Qt.PenStyle.DashLine)
+        # 2. Internal 8x8 Grid Lines (#1F1F1F)
+        grid_pen = QPen(QColor("#1F1F1F"), 1, Qt.PenStyle.SolidLine)
         painter.setPen(grid_pen)
-        painter.setFont(QFont("Inter", 8))
 
-        # Horizontal Grid (Speed: 25%, 50%, 75%, 100%)
-        for s in (25, 50, 75, 100):
-            p = self._temp_speed_to_pixel(self.min_temp, s)
-            painter.drawLine(int(gr.left()), int(p.y()), int(gr.right()), int(p.y()))
-            painter.setPen(QColor("#6A7085"))
-            painter.drawText(
-                QRectF(0, p.y() - 8, gr.left() - 8, 16),
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-                f"{s}%",
-            )
-            painter.setPen(grid_pen)
+        # 8 grid divisions = 7 interior lines
+        for i in range(1, 8):
+            # Horizontal lines
+            y = gr.top() + i * (gr.height() / 8.0)
+            painter.drawLine(QPointF(gr.left(), y), QPointF(gr.right(), y))
+            # Vertical lines
+            x = gr.left() + i * (gr.width() / 8.0)
+            painter.drawLine(QPointF(x, gr.top()), QPointF(x, gr.bottom()))
 
-        # Vertical Grid (Temp: 40, 50, 60, 70, 80, 90, 100°C)
-        for t in range(40, 101, 10):
-            p = self._temp_speed_to_pixel(t, self.min_speed)
-            painter.drawLine(int(p.x()), int(gr.top()), int(p.x()), int(gr.bottom()))
-            painter.setPen(QColor("#6A7085"))
-            painter.drawText(
-                QRectF(p.x() - 20, gr.bottom() + 6, 40, 20),
-                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
-                f"{t}°C",
-            )
-            painter.setPen(grid_pen)
+        # 3. Y-Axis Labels (Left of box: "Max" at top, "RPM" in middle, "Min" at bottom)
+        label_font = QFont("Inter", 8)
+        painter.setFont(label_font)
+        painter.setPen(QColor("#888888"))
 
-        # 2. Live Current Temp Indicator (Vertical dashed neon cyan line)
-        if self.min_temp <= self._current_temp <= self.max_temp:
-            live_p = self._temp_speed_to_pixel(self._current_temp, 0)
-            indicator_pen = QPen(QColor("#00E5FF"), 1.5, Qt.PenStyle.DashDotLine)
-            painter.setPen(indicator_pen)
-            painter.drawLine(int(live_p.x()), int(gr.top()), int(live_p.x()), int(gr.bottom()))
+        # "Max" at top
+        painter.drawText(
+            QRectF(0, gr.top() - 4, gr.left() - 6, 16),
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+            "Max",
+        )
+        # "RPM" in middle
+        painter.drawText(
+            QRectF(0, gr.center().y() - 8, gr.left() - 6, 16),
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+            "RPM",
+        )
+        # "Min" at bottom
+        painter.drawText(
+            QRectF(0, gr.bottom() - 12, gr.left() - 6, 16),
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+            "Min",
+        )
 
-            # Small live label pill
-            pill_rect = QRectF(live_p.x() - 22, gr.top() - 16, 44, 15)
-            painter.setBrush(QBrush(QColor("#00E5FF")))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(pill_rect, 3, 3)
-            painter.setPen(QColor("#0A0B10"))
-            painter.setFont(QFont("Inter", 7, QFont.Weight.Bold))
-            painter.drawText(pill_rect, Qt.AlignmentFlag.AlignCenter, f"{int(self._current_temp)}°C")
+        # 4. X-Axis Labels (Below box: "50°C" at left corner, "Temperature" in middle, "90°C" at right)
+        painter.drawText(
+            QRectF(gr.left() - 5, gr.bottom() + 6, 50, 16),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
+            "50°C",
+        )
+        painter.drawText(
+            QRectF(gr.left(), gr.bottom() + 6, gr.width(), 16),
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
+            "Temperature",
+        )
+        painter.drawText(
+            QRectF(gr.right() - 45, gr.bottom() + 6, 50, 16),
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop,
+            "90°C",
+        )
 
-        # 3. Semi-transparent gradient fill under the curve (rgba(0, 229, 255, 0.15))
-        curve_path = QPainterPath()
+        # 5. Continuous Blue Polyline (#2563EB, 2.5px) with Lead-in / Lead-out
         pixel_nodes = [self._temp_speed_to_pixel(n[0], n[1]) for n in self._nodes]
 
         if pixel_nodes:
+            curve_path = QPainterPath()
+            # Lead-in horizontal line from left border of graph to first node
             curve_path.moveTo(gr.left(), pixel_nodes[0].y())
             for pt in pixel_nodes:
                 curve_path.lineTo(pt)
+            # Lead-out horizontal line from last node to right border of graph
             curve_path.lineTo(gr.right(), pixel_nodes[-1].y())
 
-            fill_path = QPainterPath(curve_path)
-            fill_path.lineTo(gr.right(), gr.bottom())
-            fill_path.lineTo(gr.left(), gr.bottom())
-            fill_path.closeSubpath()
-
-            grad = QLinearGradient(gr.topLeft(), gr.bottomLeft())
-            grad.setColorAt(0.0, QColor(0, 229, 255, 60))
-            grad.setColorAt(1.0, QColor(0, 229, 255, 5))
-            painter.setBrush(QBrush(grad))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawPath(fill_path)
-
-            # Curve Stroke
-            stroke_pen = QPen(QColor("#00E5FF"), 2.5)
-            painter.setPen(stroke_pen)
+            line_pen = QPen(QColor("#2563EB"), 2.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+            painter.setPen(line_pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawPath(curve_path)
 
-        # 4. Draggable Control Nodes (radius 8px, #00E5FF fill, hover glow #FF0552)
-        node_radius = 7.0
+        # 6. Nodes Rendering (Glowing light-grey/white circle radius 3.5px with outer blue halo radius 6.5px)
         for idx, pt in enumerate(pixel_nodes):
-            is_hovered = idx == self._hovered_node_idx
-            is_dragged = idx == self._dragged_node_idx
+            is_hovered = (idx == self._hovered_node_idx)
+            is_dragged = (idx == self._dragged_node_idx)
 
-            if is_hovered or is_dragged:
-                # Outer glow
-                glow_color = QColor(255, 5, 82, 120)
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QBrush(glow_color))
-                painter.drawEllipse(pt, node_radius + 4, node_radius + 4)
-                node_color = QColor("#FF0552")
-            else:
-                node_color = QColor("#00E5FF")
+            halo_radius = 7.5 if (is_hovered or is_dragged) else 6.0
+            halo_color = QColor("#60A5FA") if (is_hovered or is_dragged) else QColor("#3B82F6")
 
-            # Inner circle
-            painter.setPen(QPen(QColor("#FFFFFF"), 1.5))
-            painter.setBrush(QBrush(node_color))
-            painter.drawEllipse(pt, node_radius, node_radius)
+            # Outer Halo
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(halo_color))
+            painter.drawEllipse(pt, halo_radius, halo_radius)
 
-    # ── Mouse Interaction & Monotonic Constraints ────────────────────────────
+            # Inner Circle
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor("#E2E8F0")))
+            painter.drawEllipse(pt, 3.5, 3.5)
+
+    # ── Mouse Interaction ────────────────────────────────────────────────────
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             pos = event.position()
-            # Check if clicked on any node
-            for idx, n in enumerate(self._nodes):
-                pt = self._temp_speed_to_pixel(n[0], n[1])
+            pixel_nodes = [self._temp_speed_to_pixel(n[0], n[1]) for n in self._nodes]
+            for idx, pt in enumerate(pixel_nodes):
                 dist = (pt.x() - pos.x()) ** 2 + (pt.y() - pos.y()) ** 2
                 if dist <= 12 ** 2:
                     self._dragged_node_idx = idx
@@ -210,23 +244,24 @@ class FanCurveEditor(QWidget):
         pos = event.position()
         if self._dragged_node_idx is not None:
             idx = self._dragged_node_idx
-            new_temp, new_speed = self._pixel_to_temp_speed(pos)
+            new_speed = self._pixel_to_speed(pos.y())
+            clamped_speed = max(0.0, min(100.0, round(new_speed, 1)))
 
-            # Monotonic Constraints: Node i cannot cross node i-1 or node i+1 horizontally
-            min_t = self._nodes[idx - 1][0] + 1.0 if idx > 0 else self.min_temp
-            max_t = self._nodes[idx + 1][0] - 1.0 if idx < len(self._nodes) - 1 else self.max_temp
+            # Monotonic constraints: node cannot be lower than left node, nor higher than right node
+            min_s = self._nodes[idx - 1][1] if idx > 0 else 0.0
+            max_s = self._nodes[idx + 1][1] if idx < len(self._nodes) - 1 else 100.0
 
-            clamped_temp = max(min_t, min(max_t, new_temp))
-            clamped_speed = max(0.0, min(100.0, new_speed))
+            # Allow user to push neighbors or enforce clamp:
+            # Let's enforce monotonic non-decreasing clamp:
+            smooth_speed = max(min_s, min(max_s, clamped_speed))
+            self._nodes[idx][1] = smooth_speed
 
-            self._nodes[idx] = [round(clamped_temp, 1), round(clamped_speed, 1)]
             self.update()
         else:
-            # Update hover state
             prev_hover = self._hovered_node_idx
             self._hovered_node_idx = None
-            for idx, n in enumerate(self._nodes):
-                pt = self._temp_speed_to_pixel(n[0], n[1])
+            pixel_nodes = [self._temp_speed_to_pixel(n[0], n[1]) for n in self._nodes]
+            for idx, pt in enumerate(pixel_nodes):
                 dist = (pt.x() - pos.x()) ** 2 + (pt.y() - pos.y()) ** 2
                 if dist <= 12 ** 2:
                     self._hovered_node_idx = idx

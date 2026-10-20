@@ -170,6 +170,22 @@ class NuxarchyInterface(
     def set_custom_fan_curve(self, points: List[Tuple[float, float]]) -> bool:
         return self.fan_controller.set_curve(points)
 
+    @sdbus.dbus_method(input_signature="i", result_signature="b")
+    def set_manual_fan_speed(self, speed_pct: int) -> bool:
+        return self.fan_controller.set_manual_fan_speed(speed_pct)
+
+    @sdbus.dbus_method(result_signature="i")
+    def get_manual_fan_speed(self) -> int:
+        return self.fan_controller.get_manual_fan_speed()
+
+    @sdbus.dbus_method(input_signature="b", result_signature="b")
+    def set_dynamic_curve_enabled(self, enabled: bool) -> bool:
+        return self.fan_controller.set_dynamic_curve_enabled(enabled)
+
+    @sdbus.dbus_method(result_signature="b")
+    def is_dynamic_curve_enabled(self) -> bool:
+        return self.fan_controller.is_dynamic_curve_enabled()
+
     @sdbus.dbus_method(result_signature="a{ss}")
     def get_gpu_status(self) -> Dict[str, str]:
         st = self.gpu_switch.get_status()

@@ -201,4 +201,5 @@ class MainWindow(QMainWindow):
 
         # Broadcast to active views
         self.dashboard_view.update_telemetry(metrics)
+        self.performance_view.update_telemetry(metrics)
         self.thermal_view.update_telemetry(metrics)

@@ -60,11 +60,49 @@ class TestUiSmoke(unittest.TestCase):
         self.assertEqual(kb._zone_colors[0], "#00E5FF")
         self.assertEqual(kb._zone_colors[3], "#FF0552")
 
-    def test_glow_card_widget(self):
-        card = GlowCard(title="TEST CARD", subtitle="Testing", icon_text="⚡")
-        self.assertFalse(card.is_active())
-        card.set_active(True)
-        self.assertTrue(card.is_active())
+    def test_thermal_pill_switch(self):
+        from nuxarchy.ui.widgets.thermal_pill_switch import ThermalPillSwitch
+        switch = ThermalPillSwitch()
+        self.assertEqual(switch.current_mode(), "max")
+        switch.set_mode("auto")
+        self.assertEqual(switch.current_mode(), "auto")
+        switch.set_mode("manual")
+        self.assertEqual(switch.current_mode(), "manual")
+
+    def test_performance_view_and_manual_fan(self):
+        from nuxarchy.ui.views.performance_view import PerformanceView
+        pv = PerformanceView()
+        self.assertIsNotNone(pv)
+
+        # Test power mode selection
+        pv._on_power_mode_clicked("eco")
+        self.assertTrue(pv.card_eco.is_active())
+        self.assertFalse(pv.card_perf.is_active())
+
+        pv._on_power_mode_clicked("performance")
+        self.assertTrue(pv.card_perf.is_active())
+        self.assertFalse(pv.card_eco.is_active())
+
+        # Test thermal pill switch toggle
+        pv._on_thermal_mode_changed("manual")
+        self.assertEqual(pv.thermal_stack.currentIndex(), 1)
+        pv._on_thermal_mode_changed("auto")
+        self.assertEqual(pv.thermal_stack.currentIndex(), 0)
+
+        # Test telemetry update
+        metrics = {
+            "cpu_temp_c": 89.0,
+            "gpu_temp_c": 51.0,
+            "cpu_usage_pct": 23.0,
+            "fan1_rpm": 6200,
+        }
+        pv.update_telemetry(metrics)
+        self.assertEqual(pv.lbl_cpu_temp_val.text(), "89°C")
+        self.assertEqual(pv.lbl_gpu_temp_val.text(), "51°C")
+        self.assertEqual(pv.lbl_cpu_util_val.text(), "23%")
+        self.assertEqual(pv.lbl_rpm_state_a.text(), "6200 RPM")
+        self.assertEqual(pv.lbl_cpu_temp_header.text(), "CPU: 89°C")
+        pv.close()
 
 
 if __name__ == "__main__":
